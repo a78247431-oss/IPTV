@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280, height=720, initial-scale=1.0">
+<title>K60 TV ANTIGA</title>
+
+<style>
+/* =========================================================
+   K60 — VERSÃO COMPATÍVEL COM TV ANTIGA / NAVEGADOR LEGADO
+   ========================================================= */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* BASE */
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  color: #fff;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* PALCO */
+.stage {
+  width: 100%;
+  height: 100%;
+  padding: 20px;
+  text-align: center;
+}
+
+/* TOPO */
+.brand {
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+.brand-k60 {
+  font-size: 72px;
+  font-weight: bold;
+  color: #00ff88;
+  letter-spacing: 8px;
+}
+
+.brand-tagline {
+  margin-top: 10px;
+  font-size: 20px;
+  color: #999999;
+}
+
+/* DIVISÓRIA */
+.hbar {
+  width: 90%;
+  height: 2px;
+  margin: 20px auto;
+  background: #333333;
+}
+
+/* ÁREA DOS CARDS */
+.cards {
+  width: 100%;
+  text-align: center;
+  white-space: nowrap;
+  margin-top: 20px;
+}
+
+/* CARD BASE */
+.card {
+  display: inline-block;
+  vertical-align: top;
+  width: 220px;
+  height: 300px;
+  margin: 10px;
+  padding: 20px;
+  text-decoration: none;
+  color: white;
+  border: 4px solid #333;
+  background: #111;
+}
+
+/* CORES INDIVIDUAIS */
+.card-tv1 {
+  border-color: #ffaa00;
+}
+
+.card-radio {
+  border-color: #00ff88;
+}
+
+.card-filmes {
+  border-color: #ff44cc;
+}
+
+.card-tv2 {
+  border-color: #00cfff;
+}
+
+/* FOCO TV */
+.card:focus {
+  outline: none;
+  background: #222;
+  border-width: 6px;
+}
+
+/* BADGE */
+.card-badge {
+  font-size: 12px;
+  font-weight: bold;
+  margin-bottom: 15px;
+}
+
+/* ÍCONE */
+.card-icon {
+  display: block;
+  font-size: 60px;
+  margin-top: 10px;
+  margin-bottom: 20px;
+}
+
+/* TÍTULO */
+.card-title {
+  font-size: 28px;
+  font-weight: bold;
+  margin-bottom: 15px;
+}
+
+/* DESCRIÇÃO */
+.card-desc {
+  font-size: 16px;
+  line-height: 24px;
+  color: #cccccc;
+}
+
+/* BOTÃO */
+.card-cta {
+  margin-top: 25px;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+/* RODAPÉ */
+.footer {
+  margin-top: 30px;
+  font-size: 14px;
+  color: #777;
+}
+
+/* AJUDA */
+.help-text {
+  position: absolute;
+  bottom: 20px;
+  width: 100%;
+  text-align: center;
+  font-size: 18px;
+  color: #00ff88;
+}
+</style>
+</head>
+
+<body>
+
+<div class="stage">
+
+  <!-- TOPO -->
+  <div class="brand">
+    <div class="brand-k60">K60</div>
+    <div class="brand-tagline">SELECIONE UM SERVIÇO</div>
+  </div>
+
+  <div class="hbar"></div>
+
+  <!-- CARDS -->
+  <div class="cards">
+
+    <!-- TV1 -->
+    <a href="tv.html" class="card card-tv1" tabindex="1">
+      <div class="card-badge">● AO VIVO</div>
+      <span class="card-icon">📺</span>
+      <div class="card-title">TV1</div>
+      <div class="card-desc">
+        Canais ao vivo<br>
+        do mundo todo
+      </div>
+      <div class="card-cta">ENTRAR</div>
+    </a>
+
+    <!-- RADIO -->
+    <a href="radio.html" class="card card-radio" tabindex="2">
+      <div class="card-badge">● AO VIVO</div>
+      <span class="card-icon">📻</span>
+      <div class="card-title">RÁDIO</div>
+      <div class="card-desc">
+        Estações globais<br>
+        todos idiomas
+      </div>
+      <div class="card-cta">ENTRAR</div>
+    </a>
+
+    <!-- FILMES -->
+    <a href="filmes.html" class="card card-filmes" tabindex="3">
+      <div class="card-badge">● FILMES</div>
+      <span class="card-icon">🎬</span>
+      <div class="card-title">FILMES</div>
+      <div class="card-desc">
+        Cinema em casa<br>
+        sem parar
+      </div>
+      <div class="card-cta">ENTRAR</div>
+    </a>
+
+    <!-- TV2 -->
+    <a href="fast-tv.html" class="card card-tv2" tabindex="4">
+      <div class="card-badge">● FAST</div>
+      <span class="card-icon">📡</span>
+      <div class="card-title">TV2</div>
+      <div class="card-desc">
+        Streaming rápido<br>
+        canais extras
+      </div>
+      <div class="card-cta">ENTRAR</div>
+    </a>
+
+  </div>
+
+  <div class="hbar"></div>
+
+  <!-- RODAPÉ -->
+  <div class="footer">
+    K60 BROADCAST · SETAS ← → PARA NAVEGAR · ENTER PARA ENTRAR
+  </div>
+
+</div>
+
+<!-- AJUDA -->
+<div class="help-text">
+  USE O CONTROLE REMOTO: ← ESQUERDA | → DIREITA | OK / ENTER
+</div>
+
+<script>
+/* =========================================================
+   CONTROLE DIRECIONAL PARA TV ANTIGA
+   ========================================================= */
+(function() {
+
+  var cards = document.getElementsByClassName("card");
+  var currentIndex = 0;
+
+  function setFocus(index) {
+    if (index < 0) {
+      index = cards.length - 1;
+    }
+
+    if (index >= cards.length) {
+      index = 0;
+    }
+
+    currentIndex = index;
+    cards[currentIndex].focus();
+  }
+
+  /* Início */
+  window.onload = function() {
+    setFocus(0);
+  };
+
+  /* Controle remoto / teclado */
+  document.onkeydown = function(e) {
+    e = e || window.event;
+    var key = e.keyCode;
+
+    /* ESQUERDA */
+    if (key === 37) {
+      setFocus(currentIndex - 1);
+      return false;
+    }
+
+    /* DIREITA */
+    if (key === 39) {
+      setFocus(currentIndex + 1);
+      return false;
+    }
+
+    /* CIMA */
+    if (key === 38) {
+      setFocus(currentIndex - 1);
+      return false;
+    }
+
+    /* BAIXO */
+    if (key === 40) {
+      setFocus(currentIndex + 1);
+      return false;
+    }
+
+    /* ENTER / OK */
+    if (key === 13) {
+      window.location.href = cards[currentIndex].href;
+      return false;
+    }
+  };
+
+  /* Atualiza índice ao focar */
+  for (var i = 0; i < cards.length; i++) {
+    (function(index) {
+      cards[index].onfocus = function() {
+        currentIndex = index;
+      };
+    })(i);
+  }
+
+})();
+</script>
+
+</body>
+</html>
