@@ -1,4 +1,4 @@
-# 📺 K60 TV – Smart IPTV with Persistent Numbers & Auto-Language Tuning
+# 📺 K60 TV – Smart IPTV 
 
 Watch live TV without the hassle. **K60 TV** is a lightweight, browser-based IPTV player that puts you in control. No accounts, no installation — just open, watch, and enjoy.
 
