@@ -2,6 +2,9 @@
 
 Watch live TV without the hassle. **K60 TV** is a lightweight, browser-based IPTV player that puts you in control. No accounts, no installation — just open, watch, and enjoy.
 
+🔗 **Official Access:**
+[K60 TV IPTV Player](https://a78247431-oss.github.io/IPTV/?utm_source=chatgpt.com)
+
 ---
 
 ## ✨ Key Features
@@ -54,3 +57,5 @@ Plays `.m3u`, `.m3u8`, and direct streams via **HLS.js** or native video.
 ## 👉 Try K60 TV Now
 
 Your channels, always at your fingertips.
+
+🔗 [Open K60 TV Now](https://a78247431-oss.github.io/IPTV/?utm_source=chatgpt.com)
