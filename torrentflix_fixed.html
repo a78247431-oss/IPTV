@@ -235,8 +235,6 @@ a{color:inherit;text-decoration:none}
   .sources-header{flex-direction:column;align-items:flex-start}
 }
 </style>
-<!-- WebTorrent carregado estaticamente: evita bloqueio de origem de segurança no protocolo file:// -->
-<script src="https://cdn.jsdelivr.net/npm/webtorrent@2.5.1/webtorrent.min.js"></script>
 </head>
 <body>
 <div id="app"></div>
@@ -248,7 +246,6 @@ const TORRENTIO  = 'https://torrentio.strem.fun';
 const YTS_API    = 'https://yts.mx/api/v2';
 const EZTV_API   = 'https://eztv.re/api';
 const ALLORIGINS = 'https://api.allorigins.win/get?url=';
-const WT_CDN     = 'https://cdn.jsdelivr.net/npm/webtorrent@2.5.1/webtorrent.min.js';
 
 const TRACKERS = [
   'udp://open.demonii.com:1337/announce',
@@ -277,10 +274,8 @@ const S = {
   playerOpen: false, playerTitle: '', playerFileIdx: null,
   sources: [], sourcesLoading: false,
   season: 1, episode: 1,
-  wtClient: null, currentTorrent: null,
-  playerStats: { speed: 0, peers: 0, progress: 0, downloaded: 0 },
   tmdbKey: localStorage.getItem('tf_tmdb') || '',
-  playerBuffering: true,
+  playerMagnet: null,
 };
 
 // ============ HELPERS ============
@@ -835,113 +830,59 @@ function buildSourceItemHtml(src, idx) {
   '</div>';
 }
 
-// ============ WEBTORRENT ============
-function loadWebTorrent() {
-  // WebTorrent é carregado via tag <script> estática no <head>.
-  // Esta função apenas confirma que está pronto, com espera de até 5 s.
-  return new Promise(function(resolve, reject) {
-    if (window.WebTorrent) { resolve(); return; }
-    var elapsed = 0;
-    var iv = setInterval(function() {
-      if (window.WebTorrent) { clearInterval(iv); resolve(); return; }
-      elapsed += 100;
-      if (elapsed >= 5000) {
-        clearInterval(iv);
-        reject(new Error('WebTorrent não disponível. Verifique sua conexão com a internet.'));
-      }
-    }, 100);
-  });
+// ============ PLAYER — webtor.io (sem WebRTC, funciona em file://) ============
+//
+// WebTorrent usa WebRTC que é BLOQUEADO em file:// por todos os browsers.
+// Solução: webtor.io — streaming server-side via iframe, funciona de qualquer origem.
+//
+// Estratégia de fallback em ordem:
+//   1) iframe embed  webtor.io  (streaming no próprio player)
+//   2) nova aba      webtor.io  (se iframe for bloqueado pelo usuário)
+//   3) magnet:       sistema    (abre cliente torrent local: VLC, qBittorrent…)
+
+function buildWebtorUrl(magnetURI, fileIdx) {
+  var base = 'https://embed.webtor.io/index.html';
+  var params = 'torrent=' + encodeURIComponent(magnetURI) + '&lang=pt&theme=dark&autoplay=true';
+  if (fileIdx != null && fileIdx >= 0) params += '&file_index=' + fileIdx;
+  return base + '?' + params;
 }
 
-async function playMagnet(magnetURI, title, fileIdx) {
-  try { await loadWebTorrent(); }
-  catch(e) { alert(e.message || 'Erro ao inicializar WebTorrent. Verifique sua conexão.'); return; }
-
-  if (S.currentTorrent) { try { S.currentTorrent.destroy(); } catch(e){} S.currentTorrent = null; }
-  if (!S.wtClient) {
-    S.wtClient = new WebTorrent();
-    S.wtClient.on('error', function(err) { console.error('WT:', err); });
-  }
-
-  S.playerTitle = title;
+function playMagnet(magnetURI, title, fileIdx) {
+  S.playerTitle  = title;
+  S.playerMagnet = magnetURI;
   S.playerFileIdx = (fileIdx != null) ? fileIdx : null;
-  S.playerOpen = true;
-  S.playerBuffering = true;
-  S.playerStats = { speed: 0, peers: 0, progress: 0, downloaded: 0 };
+  S.playerOpen   = true;
   render();
 
-  const videoEl = document.getElementById('mainVideo');
-
-  S.wtClient.add(magnetURI, {
-    announce: [
-      'wss://tracker.openwebtorrent.com',
-      'wss://tracker.btorrent.xyz',
-      'wss://tracker.fastcast.nz',
-      'wss://tracker.webtorrent.dev',
-    ]
-  }, function(torrent) {
-    S.currentTorrent = torrent;
-
-    var file;
-    if (S.playerFileIdx != null && torrent.files[S.playerFileIdx]) {
-      file = torrent.files[S.playerFileIdx];
-    } else {
-      file = torrent.files.reduce(function(best, f) {
-        if (!/\.(mp4|mkv|avi|webm|mov|m4v)$/i.test(f.name)) return best;
-        return (!best || f.length > best.length) ? f : best;
-      }, null);
+  // Injeta a URL no iframe após render (iframe já existe no DOM)
+  setTimeout(function() {
+    var iframe = document.getElementById('webtorIframe');
+    if (iframe) {
+      iframe.src = buildWebtorUrl(magnetURI, S.playerFileIdx);
     }
-
-    if (!file) {
-      alert('Nenhum arquivo de vídeo encontrado neste torrent.');
-      closePlayer();
-      return;
-    }
-
-    file.renderTo(videoEl, { autoplay: true }, function(err) {
-      if (err) console.error('Render error:', err);
-      else {
-        S.playerBuffering = false;
-        var w = document.getElementById('playerWaiting');
-        if (w) w.style.display = 'none';
-      }
-    });
-
-    videoEl.oncanplay = function() {
-      S.playerBuffering = false;
-      var w = document.getElementById('playerWaiting');
-      if (w) w.style.display = 'none';
-    };
-
-    var iv = setInterval(function() {
-      if (!S.currentTorrent) { clearInterval(iv); return; }
-      S.playerStats = {
-        speed: (torrent.downloadSpeed / 1048576).toFixed(2),
-        peers: torrent.numPeers,
-        progress: Math.round(torrent.progress * 100),
-        downloaded: (torrent.downloaded / 1048576).toFixed(1),
-      };
-      updatePlayerStats();
-    }, 1000);
-  });
+  }, 80);
 }
 
 function closePlayer() {
-  if (S.currentTorrent) { try { S.currentTorrent.destroy(); } catch(e){} S.currentTorrent = null; }
-  S.playerOpen = false;
+  // Limpa o iframe antes de fechar para parar o stream
+  var iframe = document.getElementById('webtorIframe');
+  if (iframe) { try { iframe.src = 'about:blank'; } catch(e){} }
+  S.playerOpen   = false;
+  S.playerMagnet = null;
   render();
 }
 
-function updatePlayerStats() {
-  const el = document.getElementById('pStats');
-  if (!el) return;
-  const s = S.playerStats;
-  el.innerHTML =
-    '<div class="stat">⬇ <span class="val">' + s.speed + ' MB/s</span></div>' +
-    '<div class="stat">👥 <span class="val">' + s.peers + ' peers</span></div>' +
-    '<div class="stat">📦 <span class="val">' + s.downloaded + ' MB</span></div>' +
-    '<div class="progress-bar"><div class="fill" style="width:' + s.progress + '%"></div></div>' +
-    '<div class="stat"><span class="val">' + s.progress + '%</span></div>';
+// Abre no webtor.io em nova aba (fallback se iframe travar)
+function openInWebtor() {
+  if (!S.playerMagnet) return;
+  var url = 'https://webtor.io/#torrent=' + encodeURIComponent(S.playerMagnet);
+  window.open(url, '_blank');
+}
+
+// Abre o link magnet no app local (VLC, qBittorrent, etc.)
+function openInLocalApp() {
+  if (!S.playerMagnet) return;
+  window.location.href = S.playerMagnet;
 }
 
 // ============ RENDER ============
@@ -1250,16 +1191,18 @@ function renderPlayer() {
     '<div class="player-top">' +
       '<button class="back" onclick="closePlayer()">← Voltar</button>' +
       '<div class="now-playing">Assistindo<strong>' + esc(S.playerTitle) + '</strong></div>' +
-    '</div>' +
-    '<div class="player-video">' +
-      '<video id="mainVideo" controls autoplay></video>' +
-      '<div id="playerWaiting" class="player-waiting" style="' + (S.playerBuffering?'':'display:none') + '">' +
-        '<div class="spin2"></div>' +
-        '<p>Conectando aos peers…</p>' +
+      '<div style="display:flex;gap:8px;">' +
+        '<button onclick="openInWebtor()" title="Abrir no webtor.io em nova aba" style="padding:7px 13px;border-radius:7px;background:rgba(0,200,255,.15);color:#00c8ff;border:1px solid rgba(0,200,255,.3);font-size:12px;font-weight:700;cursor:pointer;">🌐 Nova aba</button>' +
+        '<button onclick="openInLocalApp()" title="Abrir no VLC / qBittorrent local" style="padding:7px 13px;border-radius:7px;background:rgba(255,170,0,.12);color:#ffaa00;border:1px solid rgba(255,170,0,.3);font-size:12px;font-weight:700;cursor:pointer;">⬇ App local</button>' +
       '</div>' +
     '</div>' +
-    '<div class="player-stats" id="pStats">' +
-      '<div class="stat">Iniciando download P2P…</div>' +
+    '<div class="player-video" style="position:relative;">' +
+      '<iframe id="webtorIframe" src="about:blank" allowfullscreen allow="autoplay; fullscreen" ' +
+        'style="width:100%;height:100%;border:none;background:#000;"></iframe>' +
+      '<div style="position:absolute;bottom:0;left:0;right:0;padding:8px 16px;background:rgba(0,0,0,.7);' +
+           'font-size:11px;color:#555;text-align:center;pointer-events:none;">' +
+        'Streaming via webtor.io · Se travar: use os botões acima' +
+      '</div>' +
     '</div>' +
   '</div>';
 }
