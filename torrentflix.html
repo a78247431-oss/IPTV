@@ -170,21 +170,35 @@ input{font-family:inherit;color:inherit}
 .source-status{text-align:center;padding:24px;color:var(--text2);font-size:14px}
 .source-status .api-list{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:10px}
 
-/* ── PLAYER ── */
-#tela-player{position:fixed;inset:0;z-index:300;background:#000;display:none;flex-direction:column}
+/* ── PLAYER PANEL ── */
+#tela-player{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.92);backdrop-filter:blur(14px);display:none;align-items:center;justify-content:center}
 #tela-player.aberto{display:flex}
-.player-top{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;background:linear-gradient(to bottom,rgba(0,0,0,.85),transparent);position:absolute;top:0;left:0;right:0;z-index:10}
-.player-back{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;padding:8px 14px;border-radius:7px;background:rgba(255,255,255,.12);transition:all .2s}
-.player-back:hover{background:rgba(255,255,255,.22)}
-.player-now{font-size:13px;color:var(--text2);text-align:right;max-width:58%}
-.player-now strong{color:#fff;display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.player-btns{display:flex;gap:7px}
-.player-btn-ext{padding:7px 12px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s}
-.player-btn-webtor{background:rgba(0,200,255,.15);color:#00c8ff;border:1px solid rgba(0,200,255,.3)}
-.player-btn-local{background:rgba(255,170,0,.12);color:#ffaa00;border:1px solid rgba(255,170,0,.3)}
-.player-video{flex:1;position:relative}
-#player-iframe{width:100%;height:100%;border:none;background:#000;display:block}
-.player-hint{position:absolute;bottom:0;left:0;right:0;padding:8px 16px;background:rgba(0,0,0,.7);font-size:11px;color:#555;text-align:center;pointer-events:none}
+.player-panel{background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:580px;padding:28px;box-shadow:0 40px 80px rgba(0,0,0,.7);animation:modalIn .3s ease;position:relative}
+.player-panel-close{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .2s}
+.player-panel-close:hover{background:var(--accent)}
+.player-panel-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;margin-bottom:4px;padding-right:36px;line-height:1.2}
+.player-panel-sub{font-size:12px;color:var(--text2);margin-bottom:20px}
+.player-panel-magnet{background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:11px;color:#555;word-break:break-all;font-family:monospace;margin-bottom:20px;max-height:52px;overflow:hidden;cursor:pointer;transition:all .2s}
+.player-panel-magnet:hover{border-color:var(--cyan);color:var(--cyan)}
+.player-section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--text2);margin-bottom:10px}
+.player-links{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
+.player-link-btn{display:flex;align-items:center;gap:12px;padding:13px 16px;border-radius:10px;border:1px solid var(--border);background:var(--bg);transition:all .2s;cursor:pointer;text-decoration:none;color:var(--text)}
+.player-link-btn:hover{border-color:var(--accent);background:#0d0e14;transform:translateX(3px)}
+.player-link-btn .plb-icon{font-size:22px;flex-shrink:0;width:32px;text-align:center}
+.player-link-btn .plb-info{flex:1}
+.player-link-btn .plb-name{font-size:14px;font-weight:700}
+.player-link-btn .plb-desc{font-size:11px;color:var(--text2);margin-top:2px}
+.player-link-btn .plb-arrow{color:var(--text2);font-size:16px}
+.player-link-btn.recommended{border-color:rgba(0,230,118,.35);background:rgba(0,230,118,.04)}
+.player-link-btn.recommended .plb-name{color:var(--green)}
+.player-divider{border:none;border-top:1px solid var(--border);margin:16px 0}
+.player-local-row{display:flex;gap:8px}
+.player-local-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:700;transition:all .2s;cursor:pointer}
+.player-copy-btn{background:rgba(0,200,255,.1);color:var(--cyan);border:1px solid rgba(0,200,255,.25)}
+.player-copy-btn:hover{background:rgba(0,200,255,.2)}
+.player-magnet-btn{background:rgba(255,170,0,.1);color:#ffaa00;border:1px solid rgba(255,170,0,.25)}
+.player-magnet-btn:hover{background:rgba(255,170,0,.2)}
+.player-copy-toast{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);background:var(--green);color:#000;font-size:12px;font-weight:700;padding:6px 16px;border-radius:20px;pointer-events:none;opacity:0;transition:opacity .2s;white-space:nowrap}
 
 /* ── SETTINGS ── */
 #tela-settings{position:fixed;inset:0;z-index:250;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center}
@@ -285,20 +299,28 @@ input{font-family:inherit;color:inherit}
 </div>
 
 <!-- ══════════════════════════════════════════════════════ -->
-<!-- PLAYER                                                 -->
+<!-- PLAYER PANEL                                           -->
 <!-- ══════════════════════════════════════════════════════ -->
 <div id="tela-player">
-  <div class="player-top">
-    <button class="player-back" id="player-voltar">← Voltar</button>
-    <div class="player-now">Assistindo <strong id="player-titulo">—</strong></div>
-    <div class="player-btns">
-      <button class="player-btn-ext player-btn-webtor" id="btn-webtor-aba">🌐 Nova aba</button>
-      <button class="player-btn-ext player-btn-local" id="btn-local-app">⬇ App local</button>
+  <div class="player-panel">
+    <button class="player-panel-close" id="player-voltar">✕</button>
+    <div class="player-panel-title" id="player-titulo">—</div>
+    <div class="player-panel-sub">Escolha onde assistir — todos abrem em nova aba</div>
+
+    <div class="player-section-label">🎬 Players Online (Streaming Direto)</div>
+    <div class="player-links" id="player-links">
+      <!-- preenchido via JS -->
     </div>
-  </div>
-  <div class="player-video">
-    <iframe id="player-iframe" src="about:blank" allowfullscreen allow="autoplay; fullscreen"></iframe>
-    <div class="player-hint">Streaming via webtor.io · Se travar, use os botões acima</div>
+
+    <hr class="player-divider">
+    <div class="player-section-label">🔧 Outras Opções</div>
+    <div class="player-local-row">
+      <button class="player-local-btn player-copy-btn" id="btn-copiar-magnet">📋 Copiar Magnet</button>
+      <button class="player-local-btn player-magnet-btn" id="btn-local-app">⬇ Abrir no App Local</button>
+    </div>
+
+    <div class="player-panel-magnet" id="player-magnet-display" title="Clique para copiar o link magnet"></div>
+    <div class="player-copy-toast" id="player-copy-toast">✔ Copiado!</div>
   </div>
 </div>
 
@@ -1148,23 +1170,67 @@ function verificarFontes() {
   setTimeout(lancar, 100);
 }
 
+
 // ═══════════════════════════════════════════════════════════════════
-// PLAYER — webtor.io iframe
+// PLAYER PANEL — links externos, sem iframe
+// Funciona em qualquer host (GitHub Pages, file://, etc.)
 // ═══════════════════════════════════════════════════════════════════
-function buildWebtorUrl(magnetURI, fileIdx) {
-  var p = 'torrent=' + encodeURIComponent(magnetURI) + '&lang=pt&theme=dark&autoplay=true';
-  if (fileIdx != null && fileIdx >= 0) p += '&file_index=' + fileIdx;
-  return 'https://embed.webtor.io/index.html?' + p;
-}
+
+// Players disponíveis em ordem de recomendação
+var PLAYER_SERVICES = [
+  {
+    name: 'Webtor.io',
+    desc: 'Streaming direto no browser, sem instalar nada — recomendado',
+    icon: '🎬',
+    recommended: true,
+    url: function(mag) { return 'https://webtor.io/#torrent=' + encodeURIComponent(mag); },
+  },
+  {
+    name: 'BtorrentXYZ',
+    desc: 'Player online alternativo — funciona bem para a maioria dos torrents',
+    icon: '▶',
+    recommended: false,
+    url: function(mag) { return 'https://btorrent.xyz/#' + encodeURIComponent(mag); },
+  },
+  {
+    name: 'TorrentStream.cc',
+    desc: 'Outro player web — bom fallback se os anteriores não carregarem',
+    icon: '📡',
+    recommended: false,
+    url: function(mag) { return 'https://torrentstream.cc/play?magnet=' + encodeURIComponent(mag); },
+  },
+  {
+    name: 'Instant.io',
+    desc: 'Player via WebTorrent — funciona direto no browser',
+    icon: '⚡',
+    recommended: false,
+    url: function(mag) { return 'https://instant.io/#' + encodeURIComponent(mag); },
+  },
+];
 
 function playMagnet(magnetURI, title, fileIdx) {
   playerMagnet = magnetURI;
-  document.getElementById('player-titulo').textContent = title || '—';
-  document.getElementById('tela-player').classList.add('aberto');
-  setTimeout(function() {
-    document.getElementById('player-iframe').src = buildWebtorUrl(magnetURI, fileIdx);
-  }, 80);
   fecharModal();
+
+  // Preenche painel
+  document.getElementById('player-titulo').textContent = title || '—';
+  document.getElementById('player-magnet-display').textContent = magnetURI.slice(0, 120) + (magnetURI.length > 120 ? '…' : '');
+
+  // Gera botões de player
+  var linksHtml = PLAYER_SERVICES.map(function(svc) {
+    var url = svc.url(magnetURI);
+    return '<a href="' + url + '" target="_blank" rel="noopener" class="player-link-btn' + (svc.recommended?' recommended':'') + '">' +
+      '<span class="plb-icon">' + svc.icon + '</span>' +
+      '<span class="plb-info">' +
+        '<div class="plb-name">' + esc(svc.name) + (svc.recommended ? ' ✦' : '') + '</div>' +
+        '<div class="plb-desc">' + esc(svc.desc) + '</div>' +
+      '</span>' +
+      '<span class="plb-arrow">↗</span>' +
+    '</a>';
+  }).join('');
+  document.getElementById('player-links').innerHTML = linksHtml;
+
+  document.getElementById('tela-player').classList.add('aberto');
 }
 
 function playSource(idx) {
@@ -1181,16 +1247,41 @@ function autoPlayBest() {
 document.getElementById('btn-autoplay').onclick = autoPlayBest;
 
 function fecharPlayer() {
-  try { document.getElementById('player-iframe').src = 'about:blank'; } catch(e){}
   playerMagnet = null;
   document.getElementById('tela-player').classList.remove('aberto');
 }
 
 document.getElementById('player-voltar').onclick = fecharPlayer;
-document.getElementById('btn-webtor-aba').onclick = function() {
+document.getElementById('tela-player').addEventListener('click', function(e) {
+  if (e.target === this) fecharPlayer();
+});
+
+// Copiar magnet
+document.getElementById('btn-copiar-magnet').onclick = function() {
   if (!playerMagnet) return;
-  window.open('https://webtor.io/#torrent=' + encodeURIComponent(playerMagnet), '_blank');
+  try {
+    navigator.clipboard.writeText(playerMagnet).then(function() { mostrarCopyToast(); });
+  } catch(e) {
+    // fallback
+    var ta = document.createElement('textarea');
+    ta.value = playerMagnet;
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); mostrarCopyToast(); } catch(e2){}
+    document.body.removeChild(ta);
+  }
 };
+
+document.getElementById('player-magnet-display').onclick = function() {
+  document.getElementById('btn-copiar-magnet').click();
+};
+
+function mostrarCopyToast() {
+  var t = document.getElementById('player-copy-toast');
+  t.style.opacity = '1';
+  setTimeout(function(){ t.style.opacity = '0'; }, 1800);
+}
+
 document.getElementById('btn-local-app').onclick = function() {
   if (!playerMagnet) return;
   window.location.href = playerMagnet;
@@ -1205,6 +1296,7 @@ document.getElementById('btn-magnet-play').onclick = function() {
   var title = (itemSelecionado && (itemSelecionado.title || itemSelecionado.name)) || 'Reprodução Manual';
   playMagnet(mag, title, null);
 };
+
 
 // ═══════════════════════════════════════════════════════════════════
 // SETTINGS
