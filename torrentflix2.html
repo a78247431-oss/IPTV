@@ -137,6 +137,19 @@ input{font-family:inherit;color:inherit}
 .server-btn .srv-name{font-size:13px;font-weight:700;line-height:1.2}
 .server-btn .srv-rec{font-size:10px;margin-top:1px}
 
+/* AUTO-PLAY STATUS */
+.auto-status{display:flex;align-items:center;gap:12px;padding:28px 20px;background:var(--card);border:1px solid var(--border);border-radius:10px;font-size:14px;color:var(--text2);margin-top:4px}
+.auto-playing-label{font-size:12px;color:var(--text2);padding:6px 4px 6px;display:flex;align-items:center;gap:6px}
+.auto-playing-label strong{color:var(--text)}
+.auto-tag{background:var(--accent);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:3px;letter-spacing:.5px}
+.srv-status{font-size:10px;font-weight:700;margin-top:2px;display:block}
+.srv-status.ok{color:var(--green)}
+.srv-status.fail{color:#ff6b6b}
+.srv-status.playing{color:var(--accent)}
+.srv-status.pend{color:var(--text2)}
+.btn-next-srv{background:rgba(255,255,255,.08);color:var(--text);font-size:13px;font-weight:700;padding:10px 20px;border-radius:8px;cursor:pointer;border:1px solid var(--border);transition:all .2s}
+.btn-next-srv:hover{background:rgba(255,255,255,.15)}
+
 /* FALLBACK BLOQUEIO */
 .embed-fallback{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:32px 20px;border:1px dashed rgba(229,9,20,.4);border-radius:12px;background:rgba(229,9,20,.04);text-align:center;margin-top:4px}
 .embed-fallback p{font-size:14px;font-weight:600;color:var(--text)}
@@ -791,8 +804,66 @@ document.getElementById('modal-fechar').onclick = fecharModal;
 document.getElementById('tela-modal').addEventListener('click', function(e){ if (e.target === this) fecharModal(); });
 
 // ═══════════════════════════════════════════════════════════
-// SERVIDORES STREAMING
+// SERVIDORES STREAMING — AUTO-PLAY INTELIGENTE
 // ═══════════════════════════════════════════════════════════
+
+var _srvStatus   = {};   // { idx: 'ok'|'fail'|'pending' }
+var _autoPlaying = false;
+var _autoQueue   = [];   // fila de índices a tentar
+var _sandboxHandler = null;
+
+function getSrvUrl(idx, item) {
+  var srv = SERVERS[idx];
+  var id  = item.imdbId;
+  var s   = temporada, e = episodio;
+  var inS = document.getElementById('inSeason');
+  var inE = document.getElementById('inEpisode');
+  if (inS) s = parseInt(inS.value) || 1;
+  if (inE) e = parseInt(inE.value) || 1;
+  return item._type === 'series' ? srv.series(id, s, e) : srv.movie(id);
+}
+
+// Pinga um servidor (no-cors, timeout 5s)
+function pingSrv(url) {
+  return new Promise(function(resolve) {
+    var ctrl = new AbortController();
+    var t = setTimeout(function() { ctrl.abort(); resolve(false); }, 5000);
+    fetch(url, { method:'GET', mode:'no-cors', cache:'no-store', signal:ctrl.signal })
+      .then(function() { clearTimeout(t); resolve(true); })
+      .catch(function() { clearTimeout(t); resolve(false); });
+  });
+}
+
+function renderSrvBtns(item) {
+  var grid = document.getElementById('server-grid');
+  if (!grid) return;
+  grid.innerHTML = SERVERS.map(function(srv, idx) {
+    var st    = _srvStatus[idx] || 'pending';
+    var badge = st === 'ok'      ? '<span class="srv-status ok">✅ Online</span>'
+              : st === 'fail'    ? '<span class="srv-status fail">❌ Offline</span>'
+              : st === 'playing' ? '<span class="srv-status playing">▶ Em uso</span>'
+              :                    '<span class="srv-status pend">⏳</span>';
+    var active = serverAtivo === idx;
+    return '<button class="server-btn' + (active ? ' ativo' : '') + '" id="srv-btn-' + idx + '" onclick="playServer(' + idx + ')" ' +
+      'style="' + (active ? 'border-color:' + srv.color + ';background:rgba(255,255,255,.04);' : (srv.rec ? 'border-color:' + srv.color + '55;' : '')) + '">' +
+      '<span class="srv-icon">' + srv.icon + '</span>' +
+      '<div style="flex:1">' +
+        '<div class="srv-name" style="color:' + (active ? srv.color : srv.rec ? srv.color : 'var(--text)') + '">' + esc(srv.name) + (srv.rec ? ' ✦' : '') + '</div>' +
+        badge +
+      '</div>' +
+    '</button>';
+  }).join('');
+}
+
+function setEmbedLoading(msg) {
+  var area = document.getElementById('embed-area');
+  if (area) area.innerHTML =
+    '<div class="auto-status">' +
+      '<div class="spin spin-sm"></div>' +
+      '<span id="auto-msg">' + (msg || 'Buscando servidor…') + '</span>' +
+    '</div>';
+}
+
 function mostrarServidores(item) {
   var grid = document.getElementById('server-grid');
   var area = document.getElementById('embed-area');
@@ -815,87 +886,164 @@ function mostrarServidores(item) {
     return;
   }
 
-  // Gera botões de servidor
-  grid.innerHTML = SERVERS.map(function(srv, idx) {
-    return '<button class="server-btn" id="srv-btn-' + idx + '" onclick="playServer(' + idx + ')" ' +
-      'style="' + (srv.rec ? 'border-color:' + srv.color + ';' : '') + '">' +
-      '<span class="srv-icon">' + srv.icon + '</span>' +
-      '<div>' +
-        '<div class="srv-name" style="color:' + (srv.rec ? srv.color : 'var(--text)') + '">' + esc(srv.name) + (srv.rec ? ' ✦' : '') + '</div>' +
-        (srv.rec ? '<div class="srv-rec" style="color:' + srv.color + ';opacity:.7">Recomendado</div>' : '') +
-      '</div>' +
-    '</button>';
-  }).join('');
+  // Reset status
+  _srvStatus = {};
+  SERVERS.forEach(function(_, i) { _srvStatus[i] = 'pending'; });
+  serverAtivo = -1;
+  renderSrvBtns(item);
+  setEmbedLoading('🔍 Testando servidores disponíveis…');
 
-  area.innerHTML = '<div class="embed-hint"><div class="icon">👆</div>Clique em um servidor acima para assistir</div>';
+  // Inicia auto-play
+  autoPlay(item);
 }
 
-function playServer(idx) {
+async function autoPlay(item) {
+  if (!item || !item.imdbId) return;
+  _autoPlaying = true;
+
+  // Lê servidor em cache
+  var cached = -1;
+  try { cached = parseInt(localStorage.getItem('sf_last_srv') || '-1'); } catch(e) {}
+
+  // Ping todos em paralelo
+  var pingResults = await Promise.all(SERVERS.map(async function(srv, idx) {
+    var url = getSrvUrl(idx, item);
+    var el  = document.getElementById('auto-msg');
+    var ok  = await pingSrv(url);
+    _srvStatus[idx] = ok ? 'ok' : 'fail';
+    renderSrvBtns(item);
+    return { idx: idx, ok: ok };
+  }));
+
+  var online = pingResults.filter(function(r) { return r.ok; }).map(function(r) { return r.idx; });
+
+  if (!online.length) {
+    var area = document.getElementById('embed-area');
+    if (area) area.innerHTML =
+      '<div class="embed-fallback" style="display:flex">' +
+        '<span style="font-size:28px">📡</span>' +
+        '<p>Nenhum servidor disponível agora.</p>' +
+        '<small>Tente novamente em alguns instantes.</small>' +
+      '</div>';
+    _autoPlaying = false;
+    return;
+  }
+
+  // Prioriza: cached → recomendado → mais rápido
+  var ordered = online.slice().sort(function(a, b) {
+    if (a === cached)          return -1;
+    if (b === cached)          return 1;
+    if (SERVERS[a].rec)        return -1;
+    if (SERVERS[b].rec)        return 1;
+    return 0;
+  });
+
+  _autoQueue = ordered;
+  _autoPlaying = false;
+  playNextAuto(item);
+}
+
+function playNextAuto(item) {
+  if (!_autoQueue.length) {
+    var area = document.getElementById('embed-area');
+    if (area) area.innerHTML =
+      '<div class="embed-fallback" style="display:flex">' +
+        '<span style="font-size:28px">⚠️</span>' +
+        '<p>Todos os servidores falharam.</p>' +
+        '<small>Tente desativar extensões do browser ou use a aba anônima.</small>' +
+      '</div>';
+    return;
+  }
+  var idx = _autoQueue.shift();
+  playServer(idx, true /* auto */);
+}
+
+function playServer(idx, isAuto) {
   var srv  = SERVERS[idx];
   var item = itemSelecionado;
   if (!item || !item.imdbId) return;
-  var id = item.imdbId;
-  var s = temporada, e = episodio;
-  if (item._type === 'series') {
-    var inS = document.getElementById('inSeason');
-    var inE = document.getElementById('inEpisode');
-    if (inS) s = parseInt(inS.value) || 1;
-    if (inE) e = parseInt(inE.value) || 1;
-  }
-  var url = item._type === 'series' ? srv.series(id, s, e) : srv.movie(id);
 
-  var playerUrl = url;
+  var url = getSrvUrl(idx, item);
+
+  // Atualiza status dos botões
+  SERVERS.forEach(function(_, i) { if (_srvStatus[i] !== 'fail') _srvStatus[i] = 'ok'; });
+  _srvStatus[idx] = 'playing';
+  serverAtivo = idx;
+  renderSrvBtns(item);
+
+  // Salva em cache
+  try { localStorage.setItem('sf_last_srv', idx); } catch(e) {}
+
+  // Monta player com label do servidor
   document.getElementById('embed-area').innerHTML =
+    '<div class="auto-playing-label">▶ Reproduzindo via <strong>' + esc(srv.name) + '</strong>' +
+      (isAuto ? ' <span class="auto-tag">AUTO</span>' : '') +
+    '</div>' +
     '<div class="embed-player-wrap" id="embed-wrap">' +
       '<iframe id="embed-iframe" src="' + url + '" allow="autoplay; encrypted-media; fullscreen; picture-in-picture; web-share; clipboard-write; xr-spatial-tracking; payment; microphone; camera; gyroscope; accelerometer" referrerpolicy="no-referrer-when-downgrade"></iframe>' +
     '</div>' +
     '<div class="embed-fallback" id="embed-fallback" style="display:none">' +
       '<span style="font-size:28px">⚠️</span>' +
-      '<p>Extensão do browser bloqueou o player.</p>' +
-      '<small>Desative o AdBlock/uBlock para este arquivo ou use a aba anônima.</small>' +
-      '<a class="btn-nova-aba" href="' + url + '" target="_blank" rel="noopener">▶ Abrir Player em Nova Aba</a>' +
+      '<p id="fallback-msg">Extensão do browser bloqueou o player.</p>' +
+      '<small>Desative AdBlock/uBlock ou use aba anônima (Ctrl+Shift+N).</small>' +
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:6px">' +
+        '<a class="btn-nova-aba" href="' + url + '" target="_blank" rel="noopener">▶ Abrir em Nova Aba</a>' +
+        (_autoQueue && _autoQueue.length ? '<button class="btn-next-srv" onclick="playNextAuto(itemSelecionado)">⟳ Tentar Próximo Servidor</button>' : '') +
+      '</div>' +
     '</div>';
 
-  // Detecta mensagem de sandbox/bloqueio vinda do iframe
-  var sandboxHandler = function(e) {
-    if (!e.data) return;
-    var msg = typeof e.data === 'string' ? e.data : JSON.stringify(e.data);
-    if (msg.toLowerCase().includes('sandbox') || msg.toLowerCase().includes('blocked')) {
-      document.getElementById('embed-wrap').style.display = 'none';
-      document.getElementById('embed-fallback').style.display = 'flex';
+  // Remove handler antigo e registra novo
+  if (_sandboxHandler) window.removeEventListener('message', _sandboxHandler);
+  _sandboxHandler = function(ev) {
+    if (!ev.data) return;
+    var msg = typeof ev.data === 'string' ? ev.data : JSON.stringify(ev.data);
+    if (msg.toLowerCase().includes('sandbox') || msg.toLowerCase().includes('blocked') || msg.toLowerCase().includes('restrict')) {
+      onPlayerBlocked(idx, item, url, isAuto);
     }
   };
-  window.removeEventListener('message', sandboxHandler);
-  window.addEventListener('message', sandboxHandler);
+  window.addEventListener('message', _sandboxHandler);
 
-  // Fallback automatico: se iframe nao carregar em 6s mostra botao
+  // Watchdog: detecta iframe em branco após 7s (bloqueio por extensão)
   clearTimeout(window._embedTimer);
   window._embedTimer = setTimeout(function() {
     var iframe = document.getElementById('embed-iframe');
     if (!iframe) return;
     try {
       var doc = iframe.contentDocument;
-      if (doc && (doc.location.href === 'about:blank' || doc.body.innerHTML.trim() === '')) {
-        document.getElementById('embed-wrap').style.display = 'none';
-        document.getElementById('embed-fallback').style.display = 'flex';
+      if (doc && (doc.location.href === 'about:blank' || !doc.body || doc.body.innerHTML.trim() === '')) {
+        onPlayerBlocked(idx, item, url, isAuto);
       }
-    } catch(err) { /* cross-origin = carregou normalmente */ }
-  }, 6000);
-
-  // Highlight botão ativo
-  SERVERS.forEach(function(_, i) {
-    var btn = document.getElementById('srv-btn-' + i);
-    if (!btn) return;
-    btn.classList.toggle('ativo', i === idx);
-    btn.style.borderColor = i === idx ? SERVERS[i].color : '';
-    btn.style.background  = i === idx ? 'rgba(255,255,255,.04)' : '';
-  });
-  serverAtivo = idx;
+    } catch(err) { /* cross-origin = carregou corretamente */ }
+  }, 7000);
 
   // Scroll suave até player
   setTimeout(function() {
-    document.getElementById('embed-area').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    var el = document.getElementById('embed-area');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, 80);
+}
+
+function onPlayerBlocked(idx, item, url, wasAuto) {
+  clearTimeout(window._embedTimer);
+  _srvStatus[idx] = 'fail';
+
+  // Se ainda há servidores na fila e foi auto → tenta próximo automaticamente
+  if (wasAuto && _autoQueue && _autoQueue.length) {
+    var msgEl = document.getElementById('auto-msg');
+    if (msgEl) msgEl.textContent = 'Servidor ' + SERVERS[idx].name + ' bloqueado, tentando próximo…';
+    renderSrvBtns(item);
+    setTimeout(function() { playNextAuto(item); }, 800);
+    return;
+  }
+
+  // Caso manual ou sem fila → mostra fallback
+  renderSrvBtns(item);
+  var wrap = document.getElementById('embed-wrap');
+  var fall = document.getElementById('embed-fallback');
+  var msg  = document.getElementById('fallback-msg');
+  if (wrap) wrap.style.display = 'none';
+  if (fall) fall.style.display = 'flex';
+  if (msg)  msg.textContent    = 'Extensão bloqueou ' + SERVERS[idx].name + '.';
 }
 
 function buscarEpisodio() {
