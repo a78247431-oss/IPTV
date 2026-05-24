@@ -93,9 +93,18 @@ input{font-family:inherit;color:inherit}
 .cat-tab:hover:not(.ativo){background:rgba(255,255,255,.08);color:#fff;border-color:rgba(255,255,255,.15)}
 
 /* INFINITE SCROLL GRID */
-.sec-grid{display:flex;flex-wrap:wrap;gap:10px;padding:16px 24px 20px;min-height:60vh}
+.sec-grid{display:flex;flex-wrap:wrap;gap:10px;padding:16px 24px 20px;min-height:60vh;align-content:flex-start}
 .sentinel{width:100%;display:flex;align-items:center;justify-content:center;padding:22px;min-height:64px}
 .fim-lista{font-size:12px;color:#3a3a4e;text-align:center;padding:10px;width:100%;letter-spacing:.5px}
+.inf-loading{width:100%;text-align:center;padding:28px 0;display:flex;flex-direction:column;align-items:center;gap:8px}
+.inf-loading p{color:var(--text2);font-size:13px}
+.scroll-top-btn{position:fixed;bottom:80px;right:20px;z-index:120;width:44px;height:44px;border-radius:50%;background:var(--accent);color:#fff;font-size:20px;display:none;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(229,9,20,.5);transition:all .25s;cursor:pointer;border:none}
+.scroll-top-btn.vis{display:flex}
+.scroll-top-btn:hover{transform:scale(1.12);background:var(--accent2)}
+.card-count-badge{font-size:12px;color:var(--text2);padding:4px 14px;margin-bottom:4px;width:100%;text-align:right}
+.sec-grid .card{width:calc(16.66% - 9px)}
+@media(max-width:1200px){.sec-grid .card{width:calc(20% - 8px)}}
+@media(max-width:900px){.sec-grid .card{width:calc(25% - 8px)}}
 
 /* LOADING */
 .loading-screen{display:flex;align-items:center;justify-content:center;min-height:70vh;flex-direction:column;gap:14px}
@@ -287,6 +296,8 @@ input{font-family:inherit;color:inherit}
   .hero-btns{flex-direction:column;gap:8px}
   .row{padding:0 13px}
   .card{width:120px}
+  .sec-grid{padding:12px 13px 20px;gap:8px}
+  .sec-grid .card{width:calc(33.33% - 6px)}
   .modal-body{padding:0 14px 22px}
   .modal-body .titulo{font-size:26px}
   .modal-hero{height:200px}
@@ -300,6 +311,8 @@ input{font-family:inherit;color:inherit}
   .ch-card{width:130px}
   .live-header{padding:14px 13px 0}
   .live-search-wrap{padding:10px 13px}
+  .scroll-top-btn{bottom:90px;right:14px;width:40px;height:40px;font-size:18px}
+  .cat-tabs-wrap{padding:10px 13px 8px}
 }
 </style>
 </head>
@@ -326,6 +339,8 @@ input{font-family:inherit;color:inherit}
   </div>
   <div class="mobile-nav" id="mobile-nav"></div>
 </div>
+
+<button class="scroll-top-btn" id="scrollTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
 
 <!-- ══════════════════════════════════════ MODAL DETALHE ══════════════════════════════════════ -->
 <div id="tela-modal">
@@ -638,7 +653,8 @@ function trocarAba(aba) {
   abaAtiva = aba;
   document.getElementById('searchInput').value = '';
   renderNavs();
-  if (aba === 'live') { renderLive(); return; }
+  if (aba === 'home') teardownInfinite();
+  if (aba === 'live') { teardownInfinite(); renderLive(); return; }
   renderAba(aba);
   window.scrollTo(0, 0);
 }
@@ -732,46 +748,289 @@ function renderHome() {
     renderRow('🔮 Fantasia',           catalog.fantasy) +
     renderRow('👨‍👩‍👧 Família',            catalog.family) +
     renderRow('📖 Documentários',       catalog.docs);
+  teardownInfinite();
 }
-function renderMovies() {
+
+// ═══════════════════════════════════════════════════════════
+// INFINITE SCROLL SYSTEM
+// ═══════════════════════════════════════════════════════════
+var _inf = {
+  items: [],
+  loading: false,
+  ended: false,
+  skip: 0,
+  page: 1,
+  observer: null,
+  activeGenre: null,
+  activeTab: null,
+  seenIds: {}
+};
+
+var MOVIE_GENRES = [
+  { id: 'top',        label: '🔥 Populares' },
+  { id: 'Action',     label: '💥 Ação' },
+  { id: 'Comedy',     label: '😂 Comédia' },
+  { id: 'Sci-Fi',     label: '🔬 Ficção Científica' },
+  { id: 'Horror',     label: '👻 Terror' },
+  { id: 'Thriller',   label: '🕵 Thriller' },
+  { id: 'Romance',    label: '🌹 Romance' },
+  { id: 'Adventure',  label: '🏔 Aventura' },
+  { id: 'Fantasy',    label: '🔮 Fantasia' },
+  { id: 'Family',     label: '👨‍👩‍👧 Família' },
+  { id: 'Crime',      label: '🕵 Crime' },
+  { id: 'Animation',  label: '🎨 Animação' },
+  { id: 'Drama',      label: '🎭 Drama' },
+  { id: 'War',        label: '⚔ Guerra' },
+  { id: 'Mystery',    label: '🔍 Mistério' },
+  { id: 'Western',    label: '🤠 Western' },
+  { id: 'History',    label: '📜 História' },
+  { id: 'Music',      label: '🎵 Musical' },
+];
+
+var SERIES_GENRES = [
+  { id: 'top',        label: '🔥 Populares' },
+  { id: 'Drama',      label: '🎭 Drama' },
+  { id: 'Crime',      label: '🕵 Crime' },
+  { id: 'Comedy',     label: '😂 Comédia' },
+  { id: 'Thriller',   label: '🎭 Thriller' },
+  { id: 'Family',     label: '👨‍👩‍👧 Família' },
+  { id: 'Sci-Fi',     label: '🔬 Ficção Científica' },
+  { id: 'Action',     label: '💥 Ação' },
+  { id: 'Romance',    label: '🌹 Romance' },
+  { id: 'Fantasy',    label: '🔮 Fantasia' },
+  { id: 'Mystery',    label: '🔍 Mistério' },
+  { id: 'Horror',     label: '👻 Terror' },
+  { id: 'Animation',  label: '🎨 Animação' },
+  { id: 'Adventure',  label: '🏔 Aventura' },
+  { id: 'History',    label: '📜 História' },
+];
+
+var ANIME_GENRES = [
+  { id: 'top',     label: '🔥 Populares', filter: 'bypopularity' },
+  { id: 'airing',  label: '📡 Em Exibição', filter: 'airing' },
+  { id: '1',       label: '💥 Ação',     genres: '1' },
+  { id: '36',      label: '☕ Slice of Life', genres: '36' },
+  { id: '2',       label: '🏔 Aventura', genres: '2' },
+  { id: '4',       label: '😂 Comédia',  genres: '4' },
+  { id: '8',       label: '🎭 Drama',    genres: '8' },
+  { id: '10',      label: '🔮 Fantasia', genres: '10' },
+  { id: '14',      label: '👻 Terror',   genres: '14' },
+  { id: '22',      label: '🌹 Romance',  genres: '22' },
+  { id: '24',      label: '🔬 Ficção Científica', genres: '24' },
+  { id: 'movie',   label: '🎌 Filmes',   type: 'movie' },
+  { id: '7',       label: '🔍 Mistério', genres: '7' },
+  { id: '30',      label: '⚔ Esportes',  genres: '30' },
+  { id: '40',      label: '🧠 Psicológico', genres: '40' },
+  { id: '18',      label: '🤖 Mecha',    genres: '18' },
+  { id: '38',      label: '🔫 Militar',   genres: '38' },
+  { id: '25',      label: '🤠 Shoujo',    genres: '25' },
+  { id: '27',      label: '👦 Shounen',   genres: '27' },
+];
+
+var DOC_GENRES = [
+  { id: 'Documentary', label: '📖 Todos' },
+  { id: 'History',     label: '📜 História' },
+  { id: 'Biography',   label: '👤 Biografias' },
+  { id: 'Music',       label: '🎵 Musical' },
+  { id: 'Sport',       label: '⚽ Esportes' },
+  { id: 'War',         label: '⚔ Guerra' },
+];
+
+function teardownInfinite() {
+  if (_inf.observer) { _inf.observer.disconnect(); _inf.observer = null; }
+  _inf.loading = false;
+  _inf.ended = false;
+  _inf.items = [];
+  _inf.skip = 0;
+  _inf.page = 1;
+  _inf.seenIds = {};
+}
+
+function setupInfinite(tab, genre) {
+  teardownInfinite();
+  _inf.activeTab = tab;
+  _inf.activeGenre = genre;
   renderNavs();
+
+  var genres = tab === 'movies' ? MOVIE_GENRES : tab === 'series' ? SERIES_GENRES : tab === 'anime' ? ANIME_GENRES : DOC_GENRES;
+  var emoji = tab === 'movies' ? '🎬' : tab === 'series' ? '📺' : tab === 'anime' ? '⛩' : '📖';
+  var titulo = tab === 'movies' ? 'Filmes' : tab === 'series' ? 'Séries' : tab === 'anime' ? 'Anime' : 'Documentários';
+
+  var tabsHtml = '<div class="cat-tabs-wrap"><div class="cat-tabs">';
+  genres.forEach(function(g) {
+    tabsHtml += '<button class="cat-tab' + (genre === g.id ? ' ativo' : '') + '" onclick="switchInfGenre(\'' + tab + '\',\'' + g.id + '\')">' + g.label + '</button>';
+  });
+  tabsHtml += '</div></div>';
+
+  var activeLabel = '';
+  genres.forEach(function(g){ if (g.id === genre) activeLabel = g.label; });
+
   document.getElementById('main-content').innerHTML =
-    renderCatGrid('🎬 Filmes Populares', catalog.movies) +
-    renderRow('💥 Ação',              catalog.action) +
-    renderRow('😂 Comédia',           catalog.comedy) +
-    renderRow('🔬 Ficção Científica', catalog.scifi) +
-    renderRow('👻 Terror',            catalog.horror) +
-    renderRow('🕵 Thriller',          catalog.thriller) +
-    renderRow('🌹 Romance',           catalog.romance) +
-    renderRow('🏔 Aventura',          catalog.adventure) +
-    renderRow('🔮 Fantasia',          catalog.fantasy) +
-    renderRow('👨‍👩‍👧 Família',           catalog.family) +
-    renderRow('🕵 Crime',             catalog.crime) +
-    renderRow('🎨 Animação',          catalog.animation);
+    tabsHtml +
+    '<div class="sec-grid" id="inf-grid">' +
+      '<div class="inf-loading"><div class="spin"></div><p>Carregando ' + titulo + '…</p></div>' +
+    '</div>' +
+    '<div class="sentinel" id="inf-sentinel"></div>';
+
+  // Prefill with cached catalog data
+  var prefill = getPrefillData(tab, genre);
+  if (prefill && prefill.length) {
+    prefill.forEach(function(item) {
+      if (!_inf.seenIds[item.id]) { _inf.seenIds[item.id] = true; _inf.items.push(item); }
+    });
+    _inf.skip = prefill.length;
+    _inf.page = Math.ceil(prefill.length / 25) + 1;
+    renderInfGrid();
+  }
+
+  // Start fetching
+  loadMoreInfinite();
+
+  // Setup IntersectionObserver
+  var sentinel = document.getElementById('inf-sentinel');
+  if (sentinel) {
+    _inf.observer = new IntersectionObserver(function(entries) {
+      if (entries[0].isIntersecting && !_inf.loading && !_inf.ended) {
+        loadMoreInfinite();
+      }
+    }, { rootMargin: '600px' });
+    _inf.observer.observe(sentinel);
+  }
 }
-function renderSeries() {
-  renderNavs();
-  document.getElementById('main-content').innerHTML =
-    renderCatGrid('📺 Séries Populares', catalog.series) +
-    renderRow('🎭 Drama',     catalog.dramas) +
-    renderRow('🕵 Crime',    catalog.crimeS) +
-    renderRow('😂 Comédia',  catalog.comedyS) +
-    renderRow('🎭 Thriller', catalog.thrillerS) +
-    renderRow('👨‍👩‍👧 Família',  catalog.familyS);
+
+function getPrefillData(tab, genre) {
+  if (!catalog) return [];
+  if (tab === 'movies') {
+    if (genre === 'top') return catalog.movies || [];
+    var gMap = { Action:'action', Comedy:'comedy', 'Sci-Fi':'scifi', Horror:'horror', Thriller:'thriller',
+      Romance:'romance', Adventure:'adventure', Fantasy:'fantasy', Family:'family', Crime:'crime',
+      Animation:'animation', Drama:'dramas' };
+    return catalog[gMap[genre]] || [];
+  }
+  if (tab === 'series') {
+    if (genre === 'top') return catalog.series || [];
+    var sMap = { Drama:'dramas', Crime:'crimeS', Comedy:'comedyS', Thriller:'thrillerS', Family:'familyS' };
+    return catalog[sMap[genre]] || [];
+  }
+  if (tab === 'anime') {
+    if (genre === 'top') return catalog.anime || [];
+    if (genre === 'airing') return catalog.animeAiring || [];
+    if (genre === 'movie') return catalog.animeMovies || [];
+    if (genre === '1') return catalog.animeAction || [];
+    if (genre === '36') return catalog.animeSlice || [];
+    return [];
+  }
+  if (tab === 'docs') {
+    if (genre === 'Documentary') return catalog.docs || [];
+    return [];
+  }
+  return [];
 }
-function renderAnime() {
-  renderNavs();
-  document.getElementById('main-content').innerHTML =
-    renderCatGrid('⛩ Anime Mais Populares', catalog.anime) +
-    renderRow('📡 Em Exibição Agora',      catalog.animeAiring) +
-    renderRow('💥 Ação / Batalha',         catalog.animeAction) +
-    renderRow('🎌 Filmes Anime',            catalog.animeMovies) +
-    renderRow('☕ Slice of Life',           catalog.animeSlice);
+
+async function loadMoreInfinite() {
+  if (_inf.loading || _inf.ended) return;
+  _inf.loading = true;
+
+  var tab = _inf.activeTab;
+  var genre = _inf.activeGenre;
+  var newItems = [];
+
+  try {
+    if (tab === 'anime') {
+      newItems = await fetchAnimeInfinite(genre, _inf.page);
+    } else {
+      var cType = (tab === 'movies' || tab === 'docs') ? 'movie' : 'series';
+      newItems = await fetchCinemetaInfinite(cType, genre, _inf.skip);
+    }
+  } catch(e) {
+    console.warn('Infinite fetch error:', e);
+  }
+
+  // Filter duplicates
+  var added = 0;
+  newItems.forEach(function(item) {
+    if (!_inf.seenIds[item.id]) {
+      _inf.seenIds[item.id] = true;
+      _inf.items.push(item);
+      added++;
+    }
+  });
+
+  if (added === 0 || newItems.length < 10) {
+    _inf.ended = true;
+  }
+
+  _inf.skip += newItems.length;
+  _inf.page++;
+  _inf.loading = false;
+
+  renderInfGrid();
 }
-function renderDocs() {
-  renderNavs();
-  document.getElementById('main-content').innerHTML = renderCatGrid('📖 Documentários', catalog.docs);
+
+async function fetchCinemetaInfinite(type, genre, skip) {
+  var path;
+  if (genre === 'top') {
+    path = '/catalog/' + type + '/top/skip=' + skip + '.json';
+  } else {
+    path = '/catalog/' + type + '/top/genre=' + genre + '&skip=' + skip + '.json';
+  }
+  var data = await cinemetaFetch(path);
+  if (!data || !data.metas) return [];
+  return data.metas.map(function(m){ return normalizeCinemeta(m, type); });
 }
+
+async function fetchAnimeInfinite(genre, page) {
+  var genreObj = null;
+  ANIME_GENRES.forEach(function(g){ if (g.id === genre) genreObj = g; });
+  if (!genreObj) return [];
+
+  var path;
+  if (genre === 'top') {
+    path = '/top/anime?limit=25&page=' + page + '&filter=bypopularity';
+  } else if (genre === 'airing') {
+    path = '/top/anime?limit=25&page=' + page + '&filter=airing';
+  } else if (genre === 'movie') {
+    path = '/top/anime?limit=25&page=' + page + '&type=movie';
+  } else if (genreObj.genres) {
+    path = '/top/anime?limit=25&page=' + page + '&genres=' + genreObj.genres;
+  } else {
+    path = '/top/anime?limit=25&page=' + page;
+  }
+
+  var data = await jikanFetch(path);
+  if (!data || !data.data) return [];
+  return data.data.map(normalizeJikan);
+}
+
+function renderInfGrid() {
+  var grid = document.getElementById('inf-grid');
+  if (!grid) return;
+
+  if (!_inf.items.length && !_inf.loading) {
+    grid.innerHTML = '<div class="empty-msg"><div class="icon">🔍</div><h3>Nenhum conteúdo encontrado</h3></div>';
+    return;
+  }
+
+  var html = '<div class="card-count-badge">' + _inf.items.length + ' títulos carregados</div>';
+  html += _inf.items.map(renderCard).join('');
+
+  if (_inf.loading) {
+    html += '<div class="inf-loading"><div class="spin spin-sm"></div><p>Carregando mais…</p></div>';
+  } else if (_inf.ended) {
+    html += '<div class="fim-lista">— fim do catálogo —</div>';
+  }
+
+  grid.innerHTML = html;
+}
+
+function switchInfGenre(tab, genre) {
+  setupInfinite(tab, genre);
+}
+
+function renderMovies() { setupInfinite('movies', 'top'); }
+function renderSeries() { setupInfinite('series', 'top'); }
+function renderAnime()  { setupInfinite('anime',  'top'); }
+function renderDocs()   { setupInfinite('docs',   'Documentary'); }
 
 // ═══════════════════════════════════════════════════════════
 // BUSCA
@@ -784,6 +1043,7 @@ document.getElementById('searchInput').addEventListener('input', function(e) {
   else if (!q) { renderAba(abaAtiva); }
 });
 async function buscarTudo(query) {
+  teardownInfinite();
   var wrap = document.getElementById('main-content');
   wrap.innerHTML = '<div class="empty-msg" style="padding-top:60px"><div class="icon">🔍</div><h3>Buscando "' + esc(query) + '"…</h3></div>';
   var q = encodeURIComponent(query);
@@ -1771,10 +2031,12 @@ document.getElementById('tela-settings').addEventListener('click', function(e) {
 });
 
 // ═══════════════════════════════════════════════════════════
-// SCROLL HEADER
+// SCROLL HEADER + SCROLL TOP BTN
 // ═══════════════════════════════════════════════════════════
 window.addEventListener('scroll', function() {
   document.getElementById('header').classList.toggle('scrolled', window.scrollY > 50);
+  var btn = document.getElementById('scrollTopBtn');
+  if (btn) btn.classList.toggle('vis', window.scrollY > 600);
 });
 
 // ═══════════════════════════════════════════════════════════
