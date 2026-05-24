@@ -137,6 +137,13 @@ input{font-family:inherit;color:inherit}
 .server-btn .srv-name{font-size:13px;font-weight:700;line-height:1.2}
 .server-btn .srv-rec{font-size:10px;margin-top:1px}
 
+/* FALLBACK BLOQUEIO */
+.embed-fallback{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:32px 20px;border:1px dashed rgba(229,9,20,.4);border-radius:12px;background:rgba(229,9,20,.04);text-align:center;margin-top:4px}
+.embed-fallback p{font-size:14px;font-weight:600;color:var(--text)}
+.embed-fallback small{font-size:12px;color:var(--text2);max-width:340px;line-height:1.5}
+.btn-nova-aba{display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:#fff;font-size:14px;font-weight:700;padding:11px 28px;border-radius:8px;text-decoration:none;transition:all .2s;margin-top:6px;box-shadow:0 4px 20px rgba(229,9,20,.35)}
+.btn-nova-aba:hover{background:var(--accent2);transform:translateY(-2px)}
+
 /* EMBED PLAYER */
 .embed-player-wrap{border-radius:12px;overflow:hidden;background:#000;border:1px solid var(--border);margin-top:4px;position:relative}
 .embed-player-wrap iframe{width:100%;aspect-ratio:16/9;display:block;border:none;position:relative;z-index:1}
@@ -837,10 +844,43 @@ function playServer(idx) {
   }
   var url = item._type === 'series' ? srv.series(id, s, e) : srv.movie(id);
 
+  var playerUrl = url;
   document.getElementById('embed-area').innerHTML =
-    '<div class="embed-player-wrap">' +
-      '<iframe src="' + url + '" allow="autoplay; encrypted-media; fullscreen; picture-in-picture; web-share; clipboard-write; xr-spatial-tracking; payment; microphone; camera; gyroscope; accelerometer" referrerpolicy="no-referrer-when-downgrade"></iframe>' +
+    '<div class="embed-player-wrap" id="embed-wrap">' +
+      '<iframe id="embed-iframe" src="' + url + '" allow="autoplay; encrypted-media; fullscreen; picture-in-picture; web-share; clipboard-write; xr-spatial-tracking; payment; microphone; camera; gyroscope; accelerometer" referrerpolicy="no-referrer-when-downgrade"></iframe>' +
+    '</div>' +
+    '<div class="embed-fallback" id="embed-fallback" style="display:none">' +
+      '<span style="font-size:28px">⚠️</span>' +
+      '<p>Extensão do browser bloqueou o player.</p>' +
+      '<small>Desative o AdBlock/uBlock para este arquivo ou use a aba anônima.</small>' +
+      '<a class="btn-nova-aba" href="' + url + '" target="_blank" rel="noopener">▶ Abrir Player em Nova Aba</a>' +
     '</div>';
+
+  // Detecta mensagem de sandbox/bloqueio vinda do iframe
+  var sandboxHandler = function(e) {
+    if (!e.data) return;
+    var msg = typeof e.data === 'string' ? e.data : JSON.stringify(e.data);
+    if (msg.toLowerCase().includes('sandbox') || msg.toLowerCase().includes('blocked')) {
+      document.getElementById('embed-wrap').style.display = 'none';
+      document.getElementById('embed-fallback').style.display = 'flex';
+    }
+  };
+  window.removeEventListener('message', sandboxHandler);
+  window.addEventListener('message', sandboxHandler);
+
+  // Fallback automatico: se iframe nao carregar em 6s mostra botao
+  clearTimeout(window._embedTimer);
+  window._embedTimer = setTimeout(function() {
+    var iframe = document.getElementById('embed-iframe');
+    if (!iframe) return;
+    try {
+      var doc = iframe.contentDocument;
+      if (doc && (doc.location.href === 'about:blank' || doc.body.innerHTML.trim() === '')) {
+        document.getElementById('embed-wrap').style.display = 'none';
+        document.getElementById('embed-fallback').style.display = 'flex';
+      }
+    } catch(err) { /* cross-origin = carregou normalmente */ }
+  }, 6000);
 
   // Highlight botão ativo
   SERVERS.forEach(function(_, i) {
