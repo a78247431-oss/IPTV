@@ -358,9 +358,7 @@ input{font-family:inherit;color:inherit}
       <span class="pill pill-b">Jikan</span>
       <span class="pill pill-g">VidSrc.to</span>
       <span class="pill pill-p">2Embed</span>
-      <span class="pill pill-y">AutoEmbed</span>
-      <span class="pill pill-r">MoviesAPI</span>
-      <span class="pill pill-b">VidSrc.me</span>
+      <span class="pill pill-c">SuperEmbed</span>
       <span class="pill pill-c">IPTV-Org</span>
     </div>
     <label>Chave TMDB (opcional — metadados extras)</label>
@@ -387,21 +385,6 @@ var SERVERS = [
     name: '2Embed',   icon: '📺', color: '#0891b2', rec: false,
     movie:  function(id)      { return 'https://www.2embed.cc/embed/' + id; },
     series: function(id, s, e){ return 'https://www.2embed.cc/embedtv/' + id + '&s=' + s + '&e=' + e; }
-  },
-  {
-    name: 'AutoEmbed', icon: '⚡', color: '#7c3aed', rec: false,
-    movie:  function(id)      { return 'https://player.autoembed.cc/embed/movie/' + id; },
-    series: function(id, s, e){ return 'https://player.autoembed.cc/embed/tv/' + id + '/' + s + '/' + e; }
-  },
-  {
-    name: 'MoviesAPI', icon: '🎥', color: '#00b894', rec: false,
-    movie:  function(id)      { return 'https://moviesapi.club/movie/' + id; },
-    series: function(id, s, e){ return 'https://moviesapi.club/tv/' + id + '-' + s + '-' + e; }
-  },
-  {
-    name: 'VidSrc.me', icon: '🌐', color: '#f59e0b', rec: false,
-    movie:  function(id)      { return 'https://vidsrc.me/embed/movie?imdb=' + id; },
-    series: function(id, s, e){ return 'https://vidsrc.me/embed/tv?imdb=' + id + '&season=' + s + '&episode=' + e; }
   },
   {
     name: 'SuperEmbed', icon: '🚀', color: '#06b6d4', rec: false,
@@ -1091,12 +1074,9 @@ var DIAG_TESTS = [
   { section: null,                   id:'cinemeta-s', name:'Cinemeta (Séries)', url: 'https://v3-cinemeta.strem.io/catalog/series/top.json',   type:'api' },
   { section: null,                   id:'jikan',      name:'Jikan (Anime API)', url: 'https://api.jikan.moe/v4/top/anime?limit=1',             type:'api' },
   // ── Servidores de Streaming ──
-  { section: '🎬 Servidores de Streaming', id:'vidsrc-to', name:'VidSrc.to ✦ Recomendado', url:'https://vidsrc.to/embed/movie/' + DIAG_IMDB,                           type:'embed' },
-  { section: null, id:'twoembed',   name:'2Embed',      url:'https://www.2embed.cc/embed/' + DIAG_IMDB,                                   type:'embed' },
-  { section: null, id:'autoembed',  name:'AutoEmbed',   url:'https://player.autoembed.cc/embed/movie/' + DIAG_IMDB,                       type:'embed' },
-  { section: null, id:'moviesapi',  name:'MoviesAPI',   url:'https://moviesapi.club/movie/' + DIAG_IMDB,                                  type:'embed' },
-  { section: null, id:'vidsrc-me',  name:'VidSrc.me',   url:'https://vidsrc.me/embed/movie?imdb=' + DIAG_IMDB,                           type:'embed' },
-  { section: null, id:'superembed', name:'SuperEmbed',  url:'https://multiembed.mov/?video_id=' + DIAG_IMDB + '&tmdb=0',                  type:'embed' },
+  { section: '🎬 Servidores de Streaming', id:'vidsrc-to', name:'VidSrc.to ✦ Recomendado', url:'https://vidsrc.to/embed/movie/' + DIAG_IMDB,              type:'embed' },
+  { section: null, id:'twoembed',   name:'2Embed',      url:'https://www.2embed.cc/embed/' + DIAG_IMDB,                         type:'embed' },
+  { section: null, id:'superembed', name:'SuperEmbed',  url:'https://multiembed.mov/?video_id=' + DIAG_IMDB + '&tmdb=0',        type:'embed' },
   // ── IPTV ──
   { section: '📡 Fontes IPTV', id:'iptv-br', name:'IPTV-Org Brasil', url:'https://iptv-org.github.io/iptv/countries/br.m3u', type:'iptv' },
   { section: null,             id:'iptv-pt', name:'IPTV-Org Portugal',url:'https://iptv-org.github.io/iptv/countries/pt.m3u',type:'iptv' },
