@@ -138,8 +138,8 @@ input{font-family:inherit;color:inherit}
 .server-btn .srv-rec{font-size:10px;margin-top:1px}
 
 /* EMBED PLAYER */
-.embed-player-wrap{border-radius:12px;overflow:hidden;background:#000;border:1px solid var(--border);margin-top:4px}
-.embed-player-wrap iframe{width:100%;aspect-ratio:16/9;display:block;border:none}
+.embed-player-wrap{border-radius:12px;overflow:hidden;background:#000;border:1px solid var(--border);margin-top:4px;position:relative}
+.embed-player-wrap iframe{width:100%;aspect-ratio:16/9;display:block;border:none;position:relative;z-index:1}
 .embed-hint{padding:24px;text-align:center;color:var(--text2);font-size:13px;border:1px dashed var(--border);border-radius:10px}
 .embed-hint .icon{font-size:32px;margin-bottom:8px}
 
@@ -805,7 +805,7 @@ function playServer(idx) {
 
   document.getElementById('embed-area').innerHTML =
     '<div class="embed-player-wrap">' +
-      '<iframe src="' + url + '" allowfullscreen allow="autoplay; encrypted-media; fullscreen; picture-in-picture"></iframe>' +
+      '<iframe src="' + url + '" allowfullscreen allow="autoplay; encrypted-media; fullscreen; picture-in-picture; web-share; clipboard-write; xr-spatial-tracking; payment; microphone; camera; gyroscope; accelerometer" referrerpolicy="no-referrer-when-downgrade" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation allow-top-navigation-by-user-activation"></iframe>' +
     '</div>';
 
   // Highlight botão ativo
