@@ -207,7 +207,41 @@ input{font-family:inherit;color:inherit}
 .pill-y{color:var(--gold);border-color:rgba(255,215,0,.3);background:rgba(255,215,0,.1)}
 .pill-c{color:var(--cyan);border-color:rgba(6,182,212,.3);background:rgba(6,182,212,.1)}
 
-/* RESPONSIVE */
+/* DIAGNÓSTICO */
+#tela-diag{position:fixed;inset:0;z-index:260;background:rgba(0,0,0,.82);backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center;padding:20px}
+#tela-diag.aberta{display:flex}
+.diag-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:560px;max-height:88vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 40px 80px rgba(0,0,0,.7);animation:modalIn .3s ease}
+.diag-header{display:flex;align-items:center;justify-content:space-between;padding:20px 22px 0}
+.diag-title{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px}
+.diag-close{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.07);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .2s;cursor:pointer}
+.diag-close:hover{background:var(--accent)}
+.diag-sub{padding:6px 22px 14px;font-size:12px;color:var(--text2)}
+#diag-results{overflow-y:auto;flex:1;padding:0 16px 8px;display:flex;flex-direction:column;gap:6px}
+.diag-section{font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:var(--text2);padding:10px 6px 4px;border-bottom:1px solid var(--border);margin-bottom:2px}
+.diag-item{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 14px;transition:border-color .3s}
+.diag-item.ok{border-color:rgba(0,230,118,.3)}
+.diag-item.fail{border-color:rgba(229,9,20,.3)}
+.diag-item.warn{border-color:rgba(255,215,0,.25)}
+.diag-item.loading{border-color:var(--border)}
+.diag-icon{font-size:18px;flex-shrink:0;width:22px;text-align:center}
+.diag-info{flex:1;min-width:0}
+.diag-name{font-size:13px;font-weight:700;line-height:1.2}
+.diag-detail{font-size:11px;color:var(--text2);margin-top:2px}
+.diag-badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;flex-shrink:0;white-space:nowrap}
+.badge-ok{background:rgba(0,230,118,.15);color:var(--green);border:1px solid rgba(0,230,118,.3)}
+.badge-fail{background:rgba(229,9,20,.12);color:#ff6b6b;border:1px solid rgba(229,9,20,.3)}
+.badge-warn{background:rgba(255,215,0,.1);color:var(--gold);border:1px solid rgba(255,215,0,.25)}
+.badge-loading{background:rgba(255,255,255,.05);color:var(--text2);border:1px solid var(--border)}
+#diag-summary{margin:10px 16px;padding:12px 16px;border-radius:10px;font-size:13px;line-height:1.6;display:none}
+#diag-summary.ok{background:rgba(0,230,118,.08);border:1px solid rgba(0,230,118,.2);color:var(--green)}
+#diag-summary.parcial{background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.2);color:var(--gold)}
+#diag-summary.fail{background:rgba(229,9,20,.08);border:1px solid rgba(229,9,20,.2);color:#ff6b6b}
+.diag-footer{padding:12px 16px 16px;display:flex;justify-content:center}
+.btn-diag-run{background:var(--accent);color:#fff;font-weight:700;font-size:13px;padding:9px 28px;border-radius:8px;transition:all .2s;cursor:pointer}
+.btn-diag-run:hover{background:var(--accent2)}
+.btn-diag-run:disabled{opacity:.5;cursor:not-allowed}
+@media(max-width:768px){.diag-box{max-height:94vh}}
+
 @media(max-width:768px){
   .header{padding:9px 13px;gap:10px}
   .logo{font-size:24px}
@@ -247,6 +281,7 @@ input{font-family:inherit;color:inherit}
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
       <input id="searchInput" type="text" placeholder="Buscar filmes, séries, animes…">
     </div>
+    <button class="btn-cfg" id="btn-diag" title="Diagnóstico de Servidores" style="font-size:15px">🧪</button>
     <button class="btn-cfg" id="btn-cfg" title="Configurações">⚙</button>
   </div>
   <div id="main-content" style="padding-top:64px;min-height:100vh">
@@ -293,6 +328,22 @@ input{font-family:inherit;color:inherit}
     <div class="iptv-overlay" id="iptv-overlay">
       <div class="spin"></div>
       <p>Carregando canal…</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ DIAGNÓSTICO ══════════════════════════════════════ -->
+<div id="tela-diag">
+  <div class="diag-box">
+    <div class="diag-header">
+      <div class="diag-title">🧪 Diagnóstico de Servidores</div>
+      <button class="diag-close" id="diag-fechar">✕</button>
+    </div>
+    <div class="diag-sub">Testando conectividade com APIs e servidores de streaming…</div>
+    <div id="diag-results"></div>
+    <div id="diag-summary"></div>
+    <div class="diag-footer">
+      <button class="btn-diag-run" id="btn-diag-run">↺ Testar Novamente</button>
     </div>
   </div>
 </div>
@@ -1027,6 +1078,235 @@ document.getElementById('iptv-fechar').onclick = function() {
   if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
   document.getElementById('modal-iptv').classList.remove('aberto');
 };
+
+
+// ═══════════════════════════════════════════════════════════
+// DIAGNÓSTICO DE SERVIDORES
+// ═══════════════════════════════════════════════════════════
+var DIAG_IMDB = 'tt0111161'; // Shawshank Redemption — ID estável para testes
+
+var DIAG_TESTS = [
+  // ── APIs de Catálogo ──
+  { section: '📚 APIs de Catálogo', id:'cinemeta-m', name:'Cinemeta (Filmes)',  url: 'https://v3-cinemeta.strem.io/catalog/movie/top.json',    type:'api' },
+  { section: null,                   id:'cinemeta-s', name:'Cinemeta (Séries)', url: 'https://v3-cinemeta.strem.io/catalog/series/top.json',   type:'api' },
+  { section: null,                   id:'jikan',      name:'Jikan (Anime API)', url: 'https://api.jikan.moe/v4/top/anime?limit=1',             type:'api' },
+  // ── Servidores de Streaming ──
+  { section: '🎬 Servidores de Streaming', id:'vidsrc-to', name:'VidSrc.to ✦ Recomendado', url:'https://vidsrc.to/embed/movie/' + DIAG_IMDB,                           type:'embed' },
+  { section: null, id:'twoembed',   name:'2Embed',      url:'https://www.2embed.cc/embed/' + DIAG_IMDB,                                   type:'embed' },
+  { section: null, id:'autoembed',  name:'AutoEmbed',   url:'https://player.autoembed.cc/embed/movie/' + DIAG_IMDB,                       type:'embed' },
+  { section: null, id:'moviesapi',  name:'MoviesAPI',   url:'https://moviesapi.club/movie/' + DIAG_IMDB,                                  type:'embed' },
+  { section: null, id:'vidsrc-me',  name:'VidSrc.me',   url:'https://vidsrc.me/embed/movie?imdb=' + DIAG_IMDB,                           type:'embed' },
+  { section: null, id:'superembed', name:'SuperEmbed',  url:'https://multiembed.mov/?video_id=' + DIAG_IMDB + '&tmdb=0',                  type:'embed' },
+  // ── IPTV ──
+  { section: '📡 Fontes IPTV', id:'iptv-br', name:'IPTV-Org Brasil', url:'https://iptv-org.github.io/iptv/countries/br.m3u', type:'iptv' },
+  { section: null,             id:'iptv-pt', name:'IPTV-Org Portugal',url:'https://iptv-org.github.io/iptv/countries/pt.m3u',type:'iptv' },
+  // ── Browser ──
+  { section: '🌐 Recursos do Browser', id:'hlsjs', name:'HLS.js', type:'local' },
+  { section: null, id:'pip',   name:'Picture-in-Picture', type:'local' },
+  { section: null, id:'medias',name:'Encrypted Media (EME)', type:'local' },
+];
+
+function diagIcon(status) {
+  return { ok:'✅', fail:'❌', warn:'⚠️', loading:'⏳' }[status] || '⏳';
+}
+function diagBadgeClass(status) {
+  return { ok:'badge-ok', fail:'badge-fail', warn:'badge-warn', loading:'badge-loading' }[status] || 'badge-loading';
+}
+function diagBadgeText(status, ms) {
+  if (status === 'loading') return 'Testando…';
+  if (status === 'ok')   return ms ? '✓ Online (' + ms + 'ms)' : '✓ OK';
+  if (status === 'warn') return '⚠ Parcial';
+  if (status === 'fail') return '✗ Offline';
+  return '…';
+}
+
+function renderDiagItems(tests) {
+  var html = '';
+  var lastSection = null;
+  tests.forEach(function(t) {
+    if (t.section && t.section !== lastSection) {
+      html += '<div class="diag-section">' + t.section + '</div>';
+      lastSection = t.section;
+    }
+    html += '<div class="diag-item loading" id="diag-row-' + t.id + '">' +
+      '<div class="diag-icon" id="diag-ico-' + t.id + '">⏳</div>' +
+      '<div class="diag-info">' +
+        '<div class="diag-name">' + esc(t.name) + '</div>' +
+        '<div class="diag-detail" id="diag-det-' + t.id + '">Aguardando…</div>' +
+      '</div>' +
+      '<span class="diag-badge badge-loading" id="diag-badge-' + t.id + '">Testando…</span>' +
+    '</div>';
+  });
+  return html;
+}
+
+function updateDiagRow(id, status, detail, ms) {
+  var row   = document.getElementById('diag-row-'   + id); if (!row) return;
+  var ico   = document.getElementById('diag-ico-'   + id);
+  var det   = document.getElementById('diag-det-'   + id);
+  var badge = document.getElementById('diag-badge-' + id);
+  row.className   = 'diag-item ' + status;
+  ico.textContent = diagIcon(status);
+  det.textContent = detail || '';
+  badge.className = 'diag-badge ' + diagBadgeClass(status);
+  badge.textContent = diagBadgeText(status, ms);
+}
+
+async function testURL(url, timeoutMs) {
+  timeoutMs = timeoutMs || 7000;
+  var t0 = Date.now();
+  try {
+    var ctrl = new AbortController();
+    var timer = setTimeout(function(){ ctrl.abort(); }, timeoutMs);
+    var r = await fetch(url, { method:'GET', mode:'no-cors', signal: ctrl.signal, cache:'no-store' });
+    clearTimeout(timer);
+    return { ok: true, ms: Date.now() - t0, status: r.status || 0 };
+  } catch(e) {
+    return { ok: false, ms: Date.now() - t0, err: e.message || 'erro de rede' };
+  }
+}
+
+async function testAPI(url, timeoutMs) {
+  timeoutMs = timeoutMs || 8000;
+  var t0 = Date.now();
+  try {
+    var ctrl = new AbortController();
+    var timer = setTimeout(function(){ ctrl.abort(); }, timeoutMs);
+    var r = await fetch(url, { signal: ctrl.signal, cache:'no-store' });
+    clearTimeout(timer);
+    if (!r.ok) return { ok: false, ms: Date.now()-t0, err: 'HTTP ' + r.status };
+    var j = await r.json();
+    var count = (j && (j.metas || j.data || [])).length || 0;
+    return { ok: true, ms: Date.now()-t0, count: count };
+  } catch(e) {
+    return { ok: false, ms: Date.now()-t0, err: e.message || 'timeout' };
+  }
+}
+
+async function testIPTV(url) {
+  var t0 = Date.now();
+  try {
+    var ctrl = new AbortController();
+    var timer = setTimeout(function(){ ctrl.abort(); }, 12000);
+    var r = await fetch(url, { signal: ctrl.signal, cache:'no-store' });
+    clearTimeout(timer);
+    if (!r.ok) return { ok: false, ms: Date.now()-t0, err: 'HTTP ' + r.status };
+    var txt = await r.text();
+    var count = (txt.match(/#EXTINF/g) || []).length;
+    return { ok: true, ms: Date.now()-t0, count: count };
+  } catch(e) {
+    return { ok: false, ms: Date.now()-t0, err: e.message || 'timeout' };
+  }
+}
+
+function testLocal(id) {
+  if (id === 'hlsjs')  return { ok: typeof Hls !== 'undefined' && Hls.isSupported(), detail: typeof Hls !== 'undefined' ? (Hls.isSupported() ? 'Suportado pelo browser' : 'HLS nativo disponível') : 'hls.js não carregado' };
+  if (id === 'pip')    return { ok: !!document.pictureInPictureEnabled, detail: document.pictureInPictureEnabled ? 'Habilitado' : 'Não suportado ou bloqueado por extensão' };
+  if (id === 'medias') return { ok: !!(window.MediaKeys || window.WebKitMediaKeys || navigator.requestMediaKeySystemAccess), detail: navigator.requestMediaKeySystemAccess ? 'requestMediaKeySystemAccess disponível' : 'Não suportado — iframes de EME podem falhar' };
+  return { ok: false, detail: 'Desconhecido' };
+}
+
+var diagRunning = false;
+
+async function runDiag() {
+  if (diagRunning) return;
+  diagRunning = true;
+  var btn = document.getElementById('btn-diag-run');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Testando…'; }
+
+  var summary = document.getElementById('diag-summary');
+  if (summary) { summary.style.display = 'none'; summary.className = ''; }
+
+  document.getElementById('diag-results').innerHTML = renderDiagItems(DIAG_TESTS);
+
+  var resultados = {};
+
+  // Testa em paralelo por categoria
+  var promises = DIAG_TESTS.map(async function(t) {
+    if (t.type === 'local') {
+      var res = testLocal(t.id);
+      updateDiagRow(t.id, res.ok ? 'ok' : 'warn', res.detail);
+      resultados[t.id] = res.ok ? 'ok' : 'warn';
+      return;
+    }
+    if (t.type === 'api') {
+      var res = await testAPI(t.url);
+      if (res.ok) {
+        updateDiagRow(t.id, 'ok', res.count + ' itens recebidos', res.ms);
+        resultados[t.id] = 'ok';
+      } else {
+        updateDiagRow(t.id, 'fail', res.err, res.ms);
+        resultados[t.id] = 'fail';
+      }
+      return;
+    }
+    if (t.type === 'iptv') {
+      var res = await testIPTV(t.url);
+      if (res.ok) {
+        updateDiagRow(t.id, 'ok', res.count + ' canais encontrados', res.ms);
+        resultados[t.id] = 'ok';
+      } else {
+        updateDiagRow(t.id, 'fail', res.err, res.ms);
+        resultados[t.id] = 'fail';
+      }
+      return;
+    }
+    if (t.type === 'embed') {
+      // no-cors: se chegar resposta opaca = servidor está de pé
+      var res = await testURL(t.url, 8000);
+      if (res.ok) {
+        updateDiagRow(t.id, 'ok', 'Servidor respondeu (modo no-cors)', res.ms);
+        resultados[t.id] = 'ok';
+      } else {
+        var isTout = (res.err || '').toLowerCase().includes('abort') || res.ms >= 7900;
+        updateDiagRow(t.id, 'fail', isTout ? 'Timeout — servidor pode estar fora' : res.err, res.ms);
+        resultados[t.id] = 'fail';
+      }
+    }
+  });
+
+  await Promise.all(promises);
+
+  // Resumo final
+  var vals = Object.values(resultados);
+  var okCount   = vals.filter(function(v){ return v === 'ok';   }).length;
+  var failCount = vals.filter(function(v){ return v === 'fail'; }).length;
+  var warnCount = vals.filter(function(v){ return v === 'warn'; }).length;
+  var total = vals.length;
+
+  var cls, msg;
+  if (failCount === 0) {
+    cls = 'ok';
+    msg = '✅ Tudo funcionando! ' + okCount + '/' + total + ' serviços online.';
+  } else if (okCount >= failCount) {
+    cls = 'parcial';
+    msg = '⚠️ ' + okCount + ' OK · ' + failCount + ' com falha · ' + warnCount + ' avisos — use os servidores marcados como ✅.';
+  } else {
+    cls = 'fail';
+    msg = '❌ ' + failCount + '/' + total + ' serviços falharam. Verifique sua conexão ou tente mais tarde.';
+  }
+
+  if (summary) {
+    summary.style.display = 'block';
+    summary.className = cls;
+    summary.textContent = msg;
+  }
+
+  diagRunning = false;
+  if (btn) { btn.disabled = false; btn.textContent = '↺ Testar Novamente'; }
+}
+
+document.getElementById('btn-diag').onclick = function() {
+  document.getElementById('tela-diag').classList.add('aberta');
+  runDiag();
+};
+document.getElementById('diag-fechar').onclick = function() {
+  document.getElementById('tela-diag').classList.remove('aberta');
+};
+document.getElementById('tela-diag').addEventListener('click', function(e) {
+  if (e.target === this) this.classList.remove('aberta');
+});
+document.getElementById('btn-diag-run').onclick = runDiag;
 
 // ═══════════════════════════════════════════════════════════
 // SETTINGS
