@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>StreamFlix</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#06060a;--surface:#0f1016;--card:#161820;--border:#1e2030;
+  --text:#e8e8ec;--text2:#8a8a9a;--accent:#e50914;--accent2:#ff3d47;
+  --cyan:#00c8ff;--gold:#ffd700;--green:#00e676;
+  --radius:8px;
+}
+html,body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow-x:hidden;min-height:100vh}
+button{cursor:pointer;font-family:inherit;border:none;background:none;color:inherit}
+input{font-family:inherit;color:inherit}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#2a2d3e;border-radius:3px}
+
+/* HOME */
+#tela-home{min-height:100vh;display:block}
+#tela-home.oculta{display:none}
+
+/* HEADER */
+.header{position:fixed;top:0;left:0;right:0;z-index:100;padding:12px 24px;display:flex;align-items:center;gap:14px;background:linear-gradient(to bottom,rgba(6,6,10,.97),transparent);transition:background .3s}
+.header.scrolled{background:rgba(6,6,10,.97);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:2px;color:var(--accent);text-shadow:0 0 20px rgba(229,9,20,.4);white-space:nowrap;flex-shrink:0}
+.logo span{color:var(--text)}
+.nav{display:flex;gap:4px;flex-shrink:0}
+.nav button{padding:7px 13px;border-radius:20px;font-size:13px;font-weight:600;color:var(--text2);transition:all .2s;white-space:nowrap}
+.nav button.ativo{background:var(--accent);color:#fff}
+.nav button:hover:not(.ativo){background:rgba(255,255,255,.08);color:#fff}
+.search-box{margin-left:auto;position:relative;display:flex;align-items:center;flex-shrink:0}
+.search-box svg{position:absolute;left:11px;width:16px;height:16px;color:var(--text2);pointer-events:none}
+.search-box input{background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:8px 14px 8px 36px;width:220px;font-size:13px;color:var(--text);outline:none;transition:all .3s}
+.search-box input:focus{border-color:var(--accent);width:280px}
+.btn-cfg{width:34px;height:34px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:all .2s;font-size:16px;flex-shrink:0}
+.btn-cfg:hover{background:var(--accent)}
+
+/* HERO */
+.hero{position:relative;height:70vh;min-height:420px;overflow:hidden;margin-bottom:20px}
+.hero-bg{position:absolute;inset:0;background-size:cover;background-position:center top}
+.hero-overlay{position:absolute;inset:0;background:linear-gradient(to right,rgba(6,6,10,.95) 0%,rgba(6,6,10,.5) 50%,rgba(6,6,10,.1) 100%),linear-gradient(to top,var(--bg) 0%,transparent 50%)}
+.hero-content{position:absolute;bottom:80px;left:48px;max-width:560px;z-index:2}
+.hero-tag{display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;padding:4px 12px;border-radius:4px;margin-bottom:12px}
+.hero-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(32px,5.5vw,62px);line-height:1;letter-spacing:1px;margin-bottom:10px}
+.hero-info{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text2);margin-bottom:12px;flex-wrap:wrap}
+.hero-info .rating{color:var(--gold);font-weight:700}
+.hero-info .type-badge{background:rgba(255,255,255,.1);padding:2px 10px;border-radius:4px;font-size:11px;font-weight:600;color:#fff}
+.hero-desc{font-size:14px;line-height:1.6;color:#ccc;margin-bottom:20px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.hero-btns{display:flex;gap:10px;flex-wrap:wrap}
+.btn-play{display:inline-flex;align-items:center;gap:7px;background:var(--accent);color:#fff;font-size:14px;font-weight:700;padding:12px 28px;border-radius:7px;transition:all .2s;box-shadow:0 4px 20px rgba(229,9,20,.4)}
+.btn-play:hover{background:var(--accent2);transform:translateY(-2px)}
+.btn-info{display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.1);color:#fff;font-size:14px;font-weight:600;padding:12px 24px;border-radius:7px;transition:all .2s;border:1px solid rgba(255,255,255,.15)}
+.btn-info:hover{background:rgba(255,255,255,.2)}
+
+/* ROWS */
+.row{margin-bottom:28px;padding:0 24px}
+.row-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.row-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;display:flex;align-items:center;gap:8px}
+.row-title .dot{width:7px;height:7px;border-radius:50%;background:var(--accent)}
+.row-scroll{display:flex;gap:10px;overflow-x:auto;padding-bottom:10px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
+.row-scroll::-webkit-scrollbar{display:none}
+
+/* CARDS */
+.card{flex-shrink:0;width:160px;scroll-snap-align:start;cursor:pointer;position:relative;border-radius:var(--radius);overflow:hidden;transition:transform .3s,box-shadow .3s}
+.card:hover{transform:scale(1.08);z-index:5;box-shadow:0 10px 36px rgba(0,0,0,.7)}
+.card-img{width:100%;aspect-ratio:2/3;object-fit:cover;background:var(--card);display:block}
+.card-fallback{width:100%;aspect-ratio:2/3;display:flex;align-items:center;justify-content:center;font-size:36px;background:var(--card);color:var(--text2)}
+.card-overlay{position:absolute;bottom:0;left:0;right:0;padding:10px;background:linear-gradient(transparent,rgba(0,0,0,.95));opacity:0;transition:opacity .3s}
+.card:hover .card-overlay{opacity:1}
+.card-overlay h4{font-size:12px;font-weight:600;line-height:1.3;margin-bottom:2px}
+.card-overlay small{font-size:10px;color:var(--text2)}
+.card-rating{position:absolute;top:7px;right:7px;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);color:var(--gold);font-size:11px;font-weight:700;padding:2px 6px;border-radius:4px;opacity:0;transition:opacity .3s}
+.card:hover .card-rating{opacity:1}
+.card-type{position:absolute;top:7px;left:7px;background:rgba(0,0,0,.7);font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;opacity:0;transition:opacity .3s;text-transform:uppercase}
+.card:hover .card-type{opacity:1}
+.card-type.movie{color:var(--cyan)}
+.card-type.series{color:var(--green)}
+.card-type.anime{color:var(--gold)}
+.cat-grid{display:flex;flex-wrap:wrap;gap:10px;padding-top:8px}
+
+/* LOADING */
+.loading-screen{display:flex;align-items:center;justify-content:center;min-height:70vh;flex-direction:column;gap:14px}
+.spin{display:inline-block;width:38px;height:38px;border:4px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+.spin-sm{width:22px;height:22px;border-width:3px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-screen p{color:var(--text2);font-size:14px}
+.loading-screen small{color:#4a4a5e;font-size:12px;text-align:center}
+.empty-msg{text-align:center;padding:50px 20px;color:var(--text2)}
+.empty-msg .icon{font-size:44px;margin-bottom:10px}
+.empty-msg h3{font-size:17px;color:var(--text);margin-bottom:6px}
+
+/* MOBILE NAV */
+.mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:150;background:rgba(9,9,15,.97);backdrop-filter:blur(20px);border-top:1px solid var(--border);padding:5px 0 env(safe-area-inset-bottom,5px)}
+.mobile-nav .inner{display:flex;justify-content:space-around}
+.mobile-nav button{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;color:var(--text2);padding:4px 6px;transition:color .2s}
+.mobile-nav button.ativo{color:var(--accent)}
+.mobile-nav button .ico{font-size:18px}
+
+/* MODAL */
+#tela-modal{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.8);backdrop-filter:blur(8px);display:none;align-items:flex-start;justify-content:center;overflow-y:auto;padding:40px 20px}
+#tela-modal.aberta{display:flex}
+.modal{background:var(--surface);border-radius:14px;width:100%;max-width:900px;overflow:hidden;border:1px solid var(--border);box-shadow:0 40px 80px rgba(0,0,0,.6);animation:modalIn .3s ease}
+@keyframes modalIn{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
+.modal-hero{position:relative;height:360px;overflow:hidden}
+.modal-hero img{width:100%;height:100%;object-fit:cover}
+.modal-hero .grad{position:absolute;inset:0;background:linear-gradient(to top,var(--surface) 0%,transparent 60%)}
+.modal-close{position:absolute;top:14px;right:14px;width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,.6);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;font-size:18px;z-index:5;transition:all .2s;border:1px solid rgba(255,255,255,.1)}
+.modal-close:hover{background:var(--accent)}
+.modal-body{padding:0 28px 28px}
+.modal-body .titulo{font-family:'Bebas Neue',sans-serif;font-size:38px;letter-spacing:1px;margin-top:-58px;position:relative;z-index:2;line-height:1}
+.modal-meta{display:flex;align-items:center;gap:10px;margin:8px 0 14px;font-size:13px;color:var(--text2);flex-wrap:wrap}
+.modal-meta .rating{color:var(--gold);font-weight:700;font-size:14px}
+.modal-meta .badge{background:rgba(255,255,255,.08);padding:2px 9px;border-radius:4px;font-size:12px;border:1px solid rgba(255,255,255,.05)}
+.modal-desc{font-size:14px;line-height:1.65;color:#bbb;margin-bottom:20px}
+
+/* EP SELECTOR */
+.ep-sel{display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:12px;background:rgba(0,0,0,.3);border-radius:8px;border:1px solid var(--border);flex-wrap:wrap}
+.ep-sel label{font-size:13px;color:var(--text2);font-weight:500;display:flex;align-items:center;gap:6px}
+.ep-sel input{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:14px;color:var(--text);outline:none;width:66px;transition:border .2s}
+.ep-sel input:focus{border-color:var(--accent)}
+.ep-sel button{background:var(--accent);color:#fff;font-size:13px;font-weight:700;padding:7px 16px;border-radius:6px;transition:all .2s;white-space:nowrap}
+.ep-sel button:hover{background:var(--accent2)}
+
+/* STREAMING SERVERS */
+.servers-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;margin-bottom:14px;display:flex;align-items:center;gap:10px}
+.server-grid{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.server-btn{display:flex;align-items:center;gap:9px;padding:10px 16px;border-radius:10px;border:1px solid var(--border);background:var(--bg);cursor:pointer;transition:all .22s;text-align:left}
+.server-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.5)}
+.server-btn.ativo{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.5)}
+.server-btn .srv-icon{font-size:18px;flex-shrink:0}
+.server-btn .srv-name{font-size:13px;font-weight:700;line-height:1.2}
+.server-btn .srv-rec{font-size:10px;margin-top:1px}
+
+/* EMBED PLAYER */
+.embed-player-wrap{border-radius:12px;overflow:hidden;background:#000;border:1px solid var(--border);margin-top:4px}
+.embed-player-wrap iframe{width:100%;aspect-ratio:16/9;display:block;border:none}
+.embed-hint{padding:24px;text-align:center;color:var(--text2);font-size:13px;border:1px dashed var(--border);border-radius:10px}
+.embed-hint .icon{font-size:32px;margin-bottom:8px}
+
+/* NO IMDB — links externos */
+.anime-links{margin-top:8px}
+.anime-links-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.anime-link{padding:9px 16px;border-radius:8px;background:var(--card);border:1px solid var(--border);color:var(--text);font-size:13px;font-weight:600;text-decoration:none;transition:all .2s;display:flex;align-items:center;gap:7px}
+.anime-link:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-2px)}
+
+/* IPTV LIVE */
+.live-header{padding:20px 24px 0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.live-filters{display:flex;gap:6px;flex-wrap:wrap}
+.filter-btn{padding:5px 14px;border-radius:20px;font-size:12px;font-weight:600;color:var(--text2);border:1px solid var(--border);background:transparent;transition:all .2s;cursor:pointer}
+.filter-btn.ativo{background:var(--accent);color:#fff;border-color:var(--accent)}
+.filter-btn:hover:not(.ativo){background:rgba(255,255,255,.08);color:#fff}
+.live-search-wrap{padding:12px 24px}
+.live-search{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:9px 18px;font-size:14px;color:var(--text);outline:none;transition:border .2s}
+.live-search:focus{border-color:var(--accent)}
+.channels-grid{display:flex;flex-wrap:wrap;gap:10px;padding:0 24px 100px}
+.ch-card{width:148px;background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;transition:all .22s;flex-shrink:0}
+.ch-card:hover{transform:translateY(-4px);border-color:var(--accent);box-shadow:0 8px 24px rgba(229,9,20,.15)}
+.ch-logo-wrap{width:100%;height:76px;background:#0a0a10;display:flex;align-items:center;justify-content:center;padding:8px}
+.ch-logo{max-width:100%;max-height:100%;object-fit:contain}
+.ch-logo-fb{font-size:28px;color:var(--text2)}
+.ch-info{padding:8px 10px 10px}
+.ch-name{font-size:12px;font-weight:700;line-height:1.3;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ch-group{font-size:10px;color:var(--text2);text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.live-loading{padding:60px;text-align:center;color:var(--text2);display:flex;flex-direction:column;align-items:center;gap:12px}
+.live-empty{padding:50px 24px;text-align:center;color:var(--text2)}
+
+/* IPTV MODAL PLAYER */
+#modal-iptv{position:fixed;inset:0;z-index:300;background:#000;display:none;flex-direction:column}
+#modal-iptv.aberto{display:flex}
+.iptv-bar{display:flex;align-items:center;gap:12px;padding:10px 16px;background:rgba(6,6,10,.97);border-bottom:1px solid var(--border);z-index:2;flex-shrink:0}
+.iptv-bar-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.iptv-bar-sub{font-size:11px;color:var(--text2);flex-shrink:0}
+.iptv-close{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .2s;flex-shrink:0}
+.iptv-close:hover{background:var(--accent)}
+.iptv-video-wrap{flex:1;position:relative;background:#000;display:flex;align-items:center;justify-content:center}
+#iptv-video{width:100%;height:100%;object-fit:contain;display:block}
+.iptv-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;pointer-events:none}
+.iptv-overlay p{color:var(--text2);font-size:14px}
+.iptv-overlay small{color:#444;font-size:12px}
+
+/* SETTINGS */
+#tela-settings{position:fixed;inset:0;z-index:250;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center}
+#tela-settings.aberta{display:flex}
+.settings-box{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px;width:100%;max-width:440px;box-shadow:0 20px 50px rgba(0,0,0,.5)}
+.settings-box h3{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;margin-bottom:6px}
+.settings-box .sub{color:var(--text2);font-size:13px;margin-bottom:18px;line-height:1.5}
+.settings-box label{font-size:13px;color:var(--text2);margin-bottom:5px;display:block;font-weight:500}
+.settings-box input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:10px 12px;font-size:14px;color:var(--text);outline:none;margin-bottom:14px;transition:border .2s}
+.settings-box input:focus{border-color:var(--accent)}
+.settings-btns{display:flex;gap:8px;justify-content:flex-end}
+.btn-save{background:var(--accent);color:#fff;font-weight:700;padding:9px 22px;border-radius:7px;transition:all .2s}
+.btn-save:hover{background:var(--accent2)}
+.btn-cancel{background:rgba(255,255,255,.08);color:var(--text);padding:9px 22px;border-radius:7px;transition:all .2s}
+.btn-cancel:hover{background:rgba(255,255,255,.14)}
+.api-pills{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px;padding:10px;background:rgba(0,0,0,.3);border-radius:7px}
+.pill{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid}
+.pill-r{color:#ff6b6b;border-color:rgba(229,9,20,.3);background:rgba(229,9,20,.1)}
+.pill-b{color:var(--cyan);border-color:rgba(0,200,255,.3);background:rgba(0,200,255,.1)}
+.pill-g{color:var(--green);border-color:rgba(0,230,118,.3);background:rgba(0,230,118,.1)}
+.pill-p{color:#a78bfa;border-color:rgba(124,58,237,.3);background:rgba(124,58,237,.1)}
+.pill-y{color:var(--gold);border-color:rgba(255,215,0,.3);background:rgba(255,215,0,.1)}
+.pill-c{color:var(--cyan);border-color:rgba(6,182,212,.3);background:rgba(6,182,212,.1)}
+
+/* RESPONSIVE */
+@media(max-width:768px){
+  .header{padding:9px 13px;gap:10px}
+  .logo{font-size:24px}
+  .nav{display:none}
+  .search-box input{width:130px}
+  .search-box input:focus{width:180px}
+  .hero{height:52vh;min-height:330px}
+  .hero-content{left:18px;bottom:50px;max-width:92%}
+  .hero-title{font-size:28px}
+  .hero-btns{flex-direction:column;gap:8px}
+  .row{padding:0 13px}
+  .card{width:120px}
+  .modal-body{padding:0 14px 22px}
+  .modal-body .titulo{font-size:26px}
+  .modal-hero{height:200px}
+  #tela-modal{padding:16px 8px}
+  .mobile-nav{display:block}
+  #tela-home{padding-bottom:72px}
+  .ep-sel{gap:7px}
+  .server-btn{padding:8px 12px}
+  .server-btn .srv-name{font-size:12px}
+  .channels-grid{padding:0 13px 100px;gap:8px}
+  .ch-card{width:130px}
+  .live-header{padding:14px 13px 0}
+  .live-search-wrap{padding:10px 13px}
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════ HOME ══════════════════════════════════════ -->
+<div id="tela-home">
+  <div class="header" id="header">
+    <div class="logo">STREAM<span>FLIX</span></div>
+    <div class="nav" id="nav-tabs"></div>
+    <div class="search-box">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input id="searchInput" type="text" placeholder="Buscar filmes, séries, animes…">
+    </div>
+    <button class="btn-cfg" id="btn-cfg" title="Configurações">⚙</button>
+  </div>
+  <div id="main-content" style="padding-top:64px;min-height:100vh">
+    <div class="loading-screen">
+      <div class="spin"></div>
+      <p>Carregando catálogo…</p>
+      <small>Cinemeta · Jikan · VidSrc · IPTV-Org</small>
+    </div>
+  </div>
+  <div class="mobile-nav" id="mobile-nav"></div>
+</div>
+
+<!-- ══════════════════════════════════════ MODAL DETALHE ══════════════════════════════════════ -->
+<div id="tela-modal">
+  <div class="modal">
+    <div class="modal-hero">
+      <img id="modal-img" src="" alt="">
+      <div class="grad"></div>
+      <button class="modal-close" id="modal-fechar">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="titulo" id="modal-titulo"></div>
+      <div class="modal-meta" id="modal-meta"></div>
+      <div class="modal-desc" id="modal-desc"></div>
+      <div id="modal-ep-sel"></div>
+
+      <!-- SERVIDORES -->
+      <div class="servers-title">▶ Assistir Online</div>
+      <div class="server-grid" id="server-grid"></div>
+      <div id="embed-area"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ IPTV PLAYER ══════════════════════════════════════ -->
+<div id="modal-iptv">
+  <div class="iptv-bar">
+    <button class="iptv-close" id="iptv-fechar">✕</button>
+    <div class="iptv-bar-title" id="iptv-titulo">Canal</div>
+    <div class="iptv-bar-sub" id="iptv-grupo"></div>
+  </div>
+  <div class="iptv-video-wrap">
+    <video id="iptv-video" controls playsinline></video>
+    <div class="iptv-overlay" id="iptv-overlay">
+      <div class="spin"></div>
+      <p>Carregando canal…</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ SETTINGS ══════════════════════════════════════ -->
+<div id="tela-settings">
+  <div class="settings-box">
+    <h3>⚙ Configurações</h3>
+    <p class="sub">StreamFlix usa <strong>APIs públicas e gratuitas</strong> — sem torrent, sem cadastro, sem instalar nada.</p>
+    <div class="api-pills">
+      <span class="pill pill-r">Cinemeta</span>
+      <span class="pill pill-b">Jikan</span>
+      <span class="pill pill-g">VidSrc.to</span>
+      <span class="pill pill-p">2Embed</span>
+      <span class="pill pill-y">AutoEmbed</span>
+      <span class="pill pill-r">MoviesAPI</span>
+      <span class="pill pill-b">VidSrc.me</span>
+      <span class="pill pill-c">IPTV-Org</span>
+    </div>
+    <label>Chave TMDB (opcional — metadados extras)</label>
+    <input id="settings-tmdb" type="text" placeholder="Chave TMDB v3 (opcional)…">
+    <div class="settings-btns">
+      <button class="btn-cancel" id="settings-cancelar">Cancelar</button>
+      <button class="btn-save" id="settings-salvar">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════════
+// SERVIDORES DE STREAMING EMBED (gratuitos, via IMDB ID)
+// ═══════════════════════════════════════════════════════════
+var SERVERS = [
+  {
+    name: 'VidSrc',   icon: '🎬', color: '#e50914', rec: true,
+    movie:  function(id)      { return 'https://vidsrc.to/embed/movie/' + id; },
+    series: function(id, s, e){ return 'https://vidsrc.to/embed/tv/' + id + '/' + s + '/' + e; }
+  },
+  {
+    name: '2Embed',   icon: '📺', color: '#0891b2', rec: false,
+    movie:  function(id)      { return 'https://www.2embed.cc/embed/' + id; },
+    series: function(id, s, e){ return 'https://www.2embed.cc/embedtv/' + id + '&s=' + s + '&e=' + e; }
+  },
+  {
+    name: 'AutoEmbed', icon: '⚡', color: '#7c3aed', rec: false,
+    movie:  function(id)      { return 'https://player.autoembed.cc/embed/movie/' + id; },
+    series: function(id, s, e){ return 'https://player.autoembed.cc/embed/tv/' + id + '/' + s + '/' + e; }
+  },
+  {
+    name: 'MoviesAPI', icon: '🎥', color: '#00b894', rec: false,
+    movie:  function(id)      { return 'https://moviesapi.club/movie/' + id; },
+    series: function(id, s, e){ return 'https://moviesapi.club/tv/' + id + '-' + s + '-' + e; }
+  },
+  {
+    name: 'VidSrc.me', icon: '🌐', color: '#f59e0b', rec: false,
+    movie:  function(id)      { return 'https://vidsrc.me/embed/movie?imdb=' + id; },
+    series: function(id, s, e){ return 'https://vidsrc.me/embed/tv?imdb=' + id + '&season=' + s + '&episode=' + e; }
+  },
+  {
+    name: 'SuperEmbed', icon: '🚀', color: '#06b6d4', rec: false,
+    movie:  function(id)      { return 'https://multiembed.mov/?video_id=' + id + '&tmdb=0'; },
+    series: function(id, s, e){ return 'https://multiembed.mov/?video_id=' + id + '&tmdb=0&s=' + s + '&e=' + e; }
+  }
+];
+
+// ═══════════════════════════════════════════════════════════
+// APIS CATÁLOGO
+// ═══════════════════════════════════════════════════════════
+var CINEMETA = 'https://v3-cinemeta.strem.io';
+var JIKAN    = 'https://api.jikan.moe/v4';
+
+// ═══════════════════════════════════════════════════════════
+// ESTADO GLOBAL
+// ═══════════════════════════════════════════════════════════
+var catalog = null, hero = null;
+var abaAtiva = 'home';
+var itemSelecionado = null;
+var temporada = 1, episodio = 1;
+var serverAtivo = -1;
+var tmdbKey = '';
+var hlsInstance = null;
+var iptvAll = [], iptvFiltrado = [], iptvCategoria = 'todos';
+try { tmdbKey = localStorage.getItem('sf_tmdb') || ''; } catch(e){}
+
+// ═══════════════════════════════════════════════════════════
+// UTILITÁRIOS
+// ═══════════════════════════════════════════════════════════
+function esc(s) {
+  var d = document.createElement('div');
+  d.textContent = String(s || '');
+  return d.innerHTML;
+}
+function fetchT(url, ms) {
+  ms = ms || 8000;
+  return new Promise(function(res, rej) {
+    var done = false;
+    var t = setTimeout(function(){ if (!done){ done=true; rej(new Error('timeout')); } }, ms);
+    fetch(url).then(function(r){ if (!done){ done=true; clearTimeout(t); res(r); } })
+              .catch(function(e){ if (!done){ done=true; clearTimeout(t); rej(e); } });
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// API FETCHERS
+// ═══════════════════════════════════════════════════════════
+async function cinemetaFetch(path) {
+  try {
+    var r = await fetchT(CINEMETA + path, 8000);
+    if (!r.ok) return null;
+    return await r.json();
+  } catch(e) { return null; }
+}
+async function jikanFetch(path) {
+  try {
+    var r = await fetchT(JIKAN + path, 8000);
+    if (!r.ok) return null;
+    return await r.json();
+  } catch(e) { return null; }
+}
+function normalizeCinemeta(m, type) {
+  return {
+    id: m.id, imdbId: m.id, malId: null, _type: type,
+    title: m.name || '', name: m.name || '',
+    poster_url: m.poster || ('https://images.metahub.space/poster/medium/' + m.id + '/img'),
+    backdrop_url: m.background || m.poster || '',
+    vote_average: parseFloat(m.imdbRating) || 0,
+    release_date: m.year ? (m.year + '-01-01') : '',
+    first_air_date: m.year ? (m.year + '-01-01') : '',
+    overview: m.description || '',
+    genres: (m.genres || []).map(function(g){ return { name: g }; }),
+    runtime: m.runtime || '',
+    number_of_seasons: 1
+  };
+}
+function normalizeJikan(a) {
+  return {
+    id: 'jikan_' + a.mal_id, imdbId: null, malId: a.mal_id, _type: 'anime',
+    title: a.title_english || a.title || '',
+    name: a.title_english || a.title || '',
+    poster_url: (a.images && a.images.jpg) ? a.images.jpg.large_image_url : '',
+    backdrop_url: (a.trailer && a.trailer.images) ? a.trailer.images.maximum_image_url : ((a.images && a.images.jpg) ? a.images.jpg.large_image_url : ''),
+    vote_average: a.score || 0,
+    release_date: a.year ? (a.year + '-01-01') : '',
+    first_air_date: a.year ? (a.year + '-01-01') : '',
+    overview: a.synopsis || '',
+    genres: (a.genres || []).map(function(g){ return { name: g.name }; }),
+    runtime: a.duration || '',
+    number_of_seasons: a.episodes || null
+  };
+}
+
+// ═══════════════════════════════════════════════════════════
+// CATÁLOGO
+// ═══════════════════════════════════════════════════════════
+async function carregarCatalogo() {
+  var results = await Promise.all([
+    cinemetaFetch('/catalog/movie/top.json'),
+    cinemetaFetch('/catalog/series/top.json'),
+    jikanFetch('/top/anime?limit=24&filter=bypopularity'),
+    jikanFetch('/seasons/now?limit=20'),
+    cinemetaFetch('/catalog/movie/top/genre=Action.json'),
+    cinemetaFetch('/catalog/movie/top/genre=Horror.json'),
+    cinemetaFetch('/catalog/movie/top/genre=Sci-Fi.json'),
+    cinemetaFetch('/catalog/movie/top/genre=Crime.json'),
+    cinemetaFetch('/catalog/movie/top/genre=Documentary.json'),
+    cinemetaFetch('/catalog/movie/top/genre=Animation.json'),
+    cinemetaFetch('/catalog/series/top/genre=Drama.json'),
+    cinemetaFetch('/catalog/series/top/genre=Crime.json'),
+    cinemetaFetch('/catalog/movie/top/genre=Thriller.json'),
+  ]);
+
+  function nm(arr, type){ return (arr && arr.metas ? arr.metas : []).map(function(m){ return normalizeCinemeta(m, type); }); }
+  function nj(arr){ return (arr && arr.data ? arr.data : []).map(normalizeJikan); }
+
+  var movies = nm(results[0], 'movie');
+  var series = nm(results[1], 'series');
+  var anime  = nj(results[2]);
+  var airing = nj(results[3]);
+  var trending = [];
+  var maxLen = Math.max(movies.length, series.length);
+  for (var i = 0; i < Math.min(maxLen, 10); i++) {
+    if (movies[i]) trending.push(movies[i]);
+    if (series[i]) trending.push(series[i]);
+  }
+  catalog = {
+    movies, series, anime, airing, trending,
+    action:    nm(results[4],  'movie'),
+    horror:    nm(results[5],  'movie'),
+    scifi:     nm(results[6],  'movie'),
+    crime:     nm(results[7],  'movie'),
+    docs:      nm(results[8],  'movie'),
+    animation: nm(results[9],  'movie'),
+    dramas:    nm(results[10], 'series'),
+    crimeS:    nm(results[11], 'series'),
+    thriller:  nm(results[12], 'movie'),
+  };
+  hero = trending[Math.floor(Math.random() * Math.min(8, trending.length))] || null;
+  renderHome();
+}
+
+// ═══════════════════════════════════════════════════════════
+// ABAS / NAV
+// ═══════════════════════════════════════════════════════════
+var TABS = [
+  { id: 'home',   label: '🏠 Início' },
+  { id: 'movies', label: '🎬 Filmes' },
+  { id: 'series', label: '📺 Séries' },
+  { id: 'anime',  label: '⛩ Anime'  },
+  { id: 'docs',   label: '📖 Docs'   },
+  { id: 'live',   label: '📡 Ao Vivo'},
+];
+function renderNavs() {
+  var nav = document.getElementById('nav-tabs');
+  var mob = document.getElementById('mobile-nav');
+  nav.innerHTML = TABS.map(function(t) {
+    return '<button class="' + (abaAtiva === t.id ? 'ativo' : '') + '" onclick="trocarAba(\'' + t.id + '\')">' + t.label + '</button>';
+  }).join('');
+  mob.innerHTML = '<div class="inner">' + TABS.map(function(t) {
+    return '<button class="' + (abaAtiva === t.id ? 'ativo' : '') + '" onclick="trocarAba(\'' + t.id + '\')">'+
+      '<span class="ico">' + t.label.split(' ')[0] + '</span>'+
+      '<span style="font-size:9px">' + t.label.split(' ').slice(1).join(' ') + '</span>'+
+    '</button>';
+  }).join('') + '</div>';
+}
+function trocarAba(aba) {
+  abaAtiva = aba;
+  document.getElementById('searchInput').value = '';
+  renderNavs();
+  if (aba === 'live') { renderLive(); return; }
+  renderAba(aba);
+  window.scrollTo(0, 0);
+}
+function renderAba(aba) {
+  if (!catalog) return;
+  if (aba === 'home')   return renderHome();
+  if (aba === 'movies') return renderMovies();
+  if (aba === 'series') return renderSeries();
+  if (aba === 'anime')  return renderAnime();
+  if (aba === 'docs')   return renderDocs();
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER PÁGINAS
+// ═══════════════════════════════════════════════════════════
+function renderHero() {
+  var h = hero; if (!h) return '';
+  var title   = h.title || h.name || '';
+  var bg      = h.backdrop_url || h.poster_url || '';
+  var year    = (h.release_date || h.first_air_date || '').slice(0, 4);
+  var typeMap = { movie: 'Filme', series: 'Série', anime: 'Anime' };
+  var typeEmoji = h._type === 'anime' ? '⛩' : h._type === 'series' ? '📺' : '🎬';
+  var typeLbl = typeMap[h._type] || 'Filme';
+  return '<div class="hero">' +
+    '<div class="hero-bg" style="background-image:url(\'' + bg + '\')"></div>' +
+    '<div class="hero-overlay"></div>' +
+    '<div class="hero-content">' +
+      '<div class="hero-tag">' + typeEmoji + ' ' + typeLbl + ' em Destaque</div>' +
+      '<div class="hero-title">' + esc(title) + '</div>' +
+      '<div class="hero-info">' +
+        '<span class="rating">★ ' + (h.vote_average || 0).toFixed(1) + '</span>' +
+        (year ? '<span>' + year + '</span>' : '') +
+        '<span class="type-badge">' + typeLbl + '</span>' +
+      '</div>' +
+      (h.overview ? '<div class="hero-desc">' + esc(h.overview) + '</div>' : '') +
+      '<div class="hero-btns">' +
+        '<button class="btn-play" onclick="abrirDetalhe(\'' + esc(h.id) + '\',\'' + h._type + '\')">▶ Assistir Agora</button>' +
+        '<button class="btn-info" onclick="abrirDetalhe(\'' + esc(h.id) + '\',\'' + h._type + '\')">ℹ Mais Informações</button>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+function renderRow(title, items) {
+  if (!items || !items.length) return '';
+  return '<div class="row">' +
+    '<div class="row-head"><div class="row-title"><span class="dot"></span> ' + title + '</div></div>' +
+    '<div class="row-scroll">' + items.map(renderCard).join('') + '</div>' +
+  '</div>';
+}
+function renderCatGrid(title, items) {
+  if (!items || !items.length) return '<div class="empty-msg"><div class="icon">🎬</div><h3>Nada encontrado</h3></div>';
+  return '<div class="row" style="padding-top:16px">' +
+    '<div class="row-head"><div class="row-title"><span class="dot"></span> ' + title + '</div></div>' +
+    '<div class="cat-grid">' + items.map(renderCard).join('') + '</div>' +
+  '</div>';
+}
+function renderCard(item) {
+  var title  = item.title || item.name || '';
+  var year   = (item.release_date || item.first_air_date || '').slice(0, 4);
+  var poster = item.poster_url || '';
+  var type   = item._type || 'movie';
+  var rating = (item.vote_average || 0).toFixed(1);
+  var typeLabel = type === 'anime' ? 'Anime' : type === 'series' ? 'Série' : 'Filme';
+  var emoji = type === 'anime' ? '⛩' : type === 'series' ? '📺' : '🎬';
+  var imgHtml = poster
+    ? '<img class="card-img" src="' + poster + '" alt="' + esc(title) + '" loading="lazy" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'flex\'">' +
+      '<div class="card-fallback" style="display:none">' + emoji + '</div>'
+    : '<div class="card-fallback">' + emoji + '</div>';
+  return '<div class="card" onclick="abrirDetalhe(\'' + esc(item.id) + '\',\'' + type + '\')">' +
+    imgHtml +
+    '<div class="card-rating">★ ' + rating + '</div>' +
+    '<div class="card-type ' + type + '">' + typeLabel + '</div>' +
+    '<div class="card-overlay"><h4>' + esc(title) + '</h4><small>' + year + '</small></div>' +
+  '</div>';
+}
+function renderHome() {
+  renderNavs();
+  document.getElementById('main-content').innerHTML =
+    renderHero() +
+    renderRow('🔥 Em Alta',           catalog.trending) +
+    renderRow('🎬 Filmes Populares',   catalog.movies) +
+    renderRow('📺 Séries em Destaque', catalog.series) +
+    renderRow('⛩ Anime Top',          catalog.anime) +
+    renderRow('💥 Ação',              catalog.action) +
+    renderRow('🔬 Ficção Científica',  catalog.scifi) +
+    renderRow('👻 Terror',             catalog.horror) +
+    renderRow('🕵 Crime',             catalog.crime) +
+    renderRow('📖 Documentários',      catalog.docs);
+}
+function renderMovies() {
+  renderNavs();
+  document.getElementById('main-content').innerHTML =
+    renderCatGrid('🎬 Filmes Populares', catalog.movies) +
+    renderRow('💥 Ação',             catalog.action) +
+    renderRow('🔬 Ficção Científica', catalog.scifi) +
+    renderRow('👻 Terror',            catalog.horror) +
+    renderRow('🕵 Crime',            catalog.crime) +
+    renderRow('🎭 Thriller',          catalog.thriller) +
+    renderRow('🎨 Animação',          catalog.animation);
+}
+function renderSeries() {
+  renderNavs();
+  document.getElementById('main-content').innerHTML =
+    renderCatGrid('📺 Séries Populares', catalog.series) +
+    renderRow('🎭 Drama',  catalog.dramas) +
+    renderRow('🕵 Crime', catalog.crimeS);
+}
+function renderAnime() {
+  renderNavs();
+  document.getElementById('main-content').innerHTML =
+    renderCatGrid('⛩ Anime Mais Populares', catalog.anime) +
+    renderRow('📡 Airing Agora', catalog.airing);
+}
+function renderDocs() {
+  renderNavs();
+  document.getElementById('main-content').innerHTML = renderCatGrid('📖 Documentários', catalog.docs);
+}
+
+// ═══════════════════════════════════════════════════════════
+// BUSCA
+// ═══════════════════════════════════════════════════════════
+var _st;
+document.getElementById('searchInput').addEventListener('input', function(e) {
+  var q = e.target.value.trim();
+  clearTimeout(_st);
+  if (q.length >= 2) { _st = setTimeout(function(){ buscarTudo(q); }, 450); }
+  else if (!q) { renderAba(abaAtiva); }
+});
+async function buscarTudo(query) {
+  var wrap = document.getElementById('main-content');
+  wrap.innerHTML = '<div class="empty-msg" style="padding-top:60px"><div class="icon">🔍</div><h3>Buscando "' + esc(query) + '"…</h3></div>';
+  var q = encodeURIComponent(query);
+  var results = await Promise.all([
+    cinemetaFetch('/catalog/movie/top/search=' + q + '.json'),
+    cinemetaFetch('/catalog/series/top/search=' + q + '.json'),
+    jikanFetch('/anime?q=' + q + '&limit=8'),
+  ]);
+  var all = [];
+  if (results[0] && results[0].metas) results[0].metas.slice(0, 10).forEach(function(m){ all.push(normalizeCinemeta(m, 'movie')); });
+  if (results[1] && results[1].metas) results[1].metas.slice(0, 10).forEach(function(m){ all.push(normalizeCinemeta(m, 'series')); });
+  if (results[2] && results[2].data)  results[2].data.slice(0, 8).forEach(function(a){ all.push(normalizeJikan(a)); });
+  if (!all.length) {
+    wrap.innerHTML = '<div class="empty-msg" style="padding-top:60px"><div class="icon">🔍</div><h3>Nenhum resultado para "' + esc(query) + '"</h3></div>';
+    return;
+  }
+  wrap.innerHTML = '<div class="row" style="padding-top:16px">' +
+    '<div class="row-head"><div class="row-title"><span class="dot"></span> Resultados para "' + esc(query) + '"</div></div>' +
+    '<div class="cat-grid">' + all.map(renderCard).join('') + '</div>' +
+  '</div>';
+}
+
+// ═══════════════════════════════════════════════════════════
+// MODAL DETALHES
+// ═══════════════════════════════════════════════════════════
+async function abrirDetalhe(id, type) {
+  document.getElementById('tela-modal').classList.add('aberta');
+  document.getElementById('modal-img').src = '';
+  document.getElementById('modal-titulo').textContent = '…';
+  document.getElementById('modal-meta').innerHTML = '';
+  document.getElementById('modal-desc').textContent = '';
+  document.getElementById('modal-ep-sel').innerHTML = '';
+  document.getElementById('server-grid').innerHTML = '';
+  document.getElementById('embed-area').innerHTML = '';
+  serverAtivo = -1; temporada = 1; episodio = 1;
+
+  var data = await carregarDetalhes(id, type);
+  if (!data) {
+    document.getElementById('tela-modal').classList.remove('aberta');
+    alert('Erro ao carregar detalhes. Tente novamente.');
+    return;
+  }
+  itemSelecionado = data;
+  preencherModal(data);
+  mostrarServidores(data);
+}
+async function carregarDetalhes(id, type) {
+  if (type === 'anime' || String(id).startsWith('jikan_')) {
+    var malId = String(id).replace('jikan_', '');
+    var d = await jikanFetch('/anime/' + malId);
+    if (!d || !d.data) return null;
+    return normalizeJikan(d.data);
+  }
+  var endpoint = type === 'series' ? 'series' : 'movie';
+  var d = await cinemetaFetch('/meta/' + endpoint + '/' + id + '.json');
+  if (!d || !d.meta) return null;
+  var m = d.meta;
+  var base = normalizeCinemeta(m, type);
+  base.overview = m.description || base.overview;
+  var videos = m.videos || [];
+  var seasons = videos.map(function(v){ return v.season || 0; }).filter(function(s){ return s > 0; });
+  base.number_of_seasons = seasons.length ? Math.max.apply(null, seasons) : 1;
+  return base;
+}
+function preencherModal(item) {
+  var title = item.title || item.name || '';
+  var year  = (item.release_date || item.first_air_date || '').slice(0, 4);
+  var bg    = item.backdrop_url || item.poster_url || '';
+  var img   = document.getElementById('modal-img');
+  if (bg) { img.src = bg; img.style.display = 'block'; } else { img.style.display = 'none'; }
+  document.getElementById('modal-titulo').textContent = title;
+
+  var metaHtml = '<span class="rating">★ ' + (item.vote_average || 0).toFixed(1) + '</span>';
+  if (year) metaHtml += '<span>' + year + '</span>';
+  if (item.runtime) metaHtml += '<span class="badge">' + esc(item.runtime) + '</span>';
+  if (item.number_of_seasons && item._type === 'series') metaHtml += '<span class="badge">' + item.number_of_seasons + ' temp.</span>';
+  (item.genres || []).forEach(function(g){ metaHtml += '<span class="badge">' + esc(g.name) + '</span>'; });
+  document.getElementById('modal-meta').innerHTML = metaHtml;
+  document.getElementById('modal-desc').textContent = item.overview || 'Sem descrição disponível.';
+
+  if (item._type === 'series') {
+    document.getElementById('modal-ep-sel').innerHTML =
+      '<div class="ep-sel">' +
+        '<label>Temporada: <input type="number" id="inSeason" value="1" min="1" max="' + (item.number_of_seasons || 30) + '"></label>' +
+        '<label>Episódio: <input type="number" id="inEpisode" value="1" min="1"></label>' +
+        '<button onclick="buscarEpisodio()">🔍 Buscar</button>' +
+      '</div>';
+  }
+}
+function fecharModal() {
+  document.getElementById('tela-modal').classList.remove('aberta');
+  document.getElementById('embed-area').innerHTML = '';
+  itemSelecionado = null; serverAtivo = -1;
+}
+document.getElementById('modal-fechar').onclick = fecharModal;
+document.getElementById('tela-modal').addEventListener('click', function(e){ if (e.target === this) fecharModal(); });
+
+// ═══════════════════════════════════════════════════════════
+// SERVIDORES STREAMING
+// ═══════════════════════════════════════════════════════════
+function mostrarServidores(item) {
+  var grid = document.getElementById('server-grid');
+  var area = document.getElementById('embed-area');
+
+  // Anime sem IMDB → links externos
+  if (!item.imdbId) {
+    var q = encodeURIComponent(item.title || item.name || '');
+    grid.innerHTML = '';
+    area.innerHTML =
+      '<div class="anime-links">' +
+        '<p style="font-size:13px;color:var(--text2);margin-bottom:2px">Anime sem ID IMDB — assista em:</p>' +
+        '<div class="anime-links-grid">' +
+          '<a class="anime-link" href="https://gogoanime3.co/search.html?keyword=' + q + '" target="_blank" rel="noopener">🔵 GogoAnime</a>' +
+          '<a class="anime-link" href="https://animepahe.ru/?q=' + q + '" target="_blank" rel="noopener">🟣 AnimePahe</a>' +
+          '<a class="anime-link" href="https://www.crunchyroll.com/pt-br/search?q=' + q + '" target="_blank" rel="noopener">🟠 Crunchyroll</a>' +
+          '<a class="anime-link" href="https://animesdigital.com.br/?s=' + q + '" target="_blank" rel="noopener">🔴 AnimesDigital</a>' +
+          '<a class="anime-link" href="https://animesonline.cc/?s=' + q + '" target="_blank" rel="noopener">🟢 AnimesOnline</a>' +
+        '</div>' +
+      '</div>';
+    return;
+  }
+
+  // Gera botões de servidor
+  grid.innerHTML = SERVERS.map(function(srv, idx) {
+    return '<button class="server-btn" id="srv-btn-' + idx + '" onclick="playServer(' + idx + ')" ' +
+      'style="' + (srv.rec ? 'border-color:' + srv.color + ';' : '') + '">' +
+      '<span class="srv-icon">' + srv.icon + '</span>' +
+      '<div>' +
+        '<div class="srv-name" style="color:' + (srv.rec ? srv.color : 'var(--text)') + '">' + esc(srv.name) + (srv.rec ? ' ✦' : '') + '</div>' +
+        (srv.rec ? '<div class="srv-rec" style="color:' + srv.color + ';opacity:.7">Recomendado</div>' : '') +
+      '</div>' +
+    '</button>';
+  }).join('');
+
+  area.innerHTML = '<div class="embed-hint"><div class="icon">👆</div>Clique em um servidor acima para assistir</div>';
+}
+
+function playServer(idx) {
+  var srv  = SERVERS[idx];
+  var item = itemSelecionado;
+  if (!item || !item.imdbId) return;
+  var id = item.imdbId;
+  var s = temporada, e = episodio;
+  if (item._type === 'series') {
+    var inS = document.getElementById('inSeason');
+    var inE = document.getElementById('inEpisode');
+    if (inS) s = parseInt(inS.value) || 1;
+    if (inE) e = parseInt(inE.value) || 1;
+  }
+  var url = item._type === 'series' ? srv.series(id, s, e) : srv.movie(id);
+
+  document.getElementById('embed-area').innerHTML =
+    '<div class="embed-player-wrap">' +
+      '<iframe src="' + url + '" allowfullscreen allow="autoplay; encrypted-media; fullscreen; picture-in-picture"></iframe>' +
+    '</div>';
+
+  // Highlight botão ativo
+  SERVERS.forEach(function(_, i) {
+    var btn = document.getElementById('srv-btn-' + i);
+    if (!btn) return;
+    btn.classList.toggle('ativo', i === idx);
+    btn.style.borderColor = i === idx ? SERVERS[i].color : '';
+    btn.style.background  = i === idx ? 'rgba(255,255,255,.04)' : '';
+  });
+  serverAtivo = idx;
+
+  // Scroll suave até player
+  setTimeout(function() {
+    document.getElementById('embed-area').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, 80);
+}
+
+function buscarEpisodio() {
+  var inS = document.getElementById('inSeason');
+  var inE = document.getElementById('inEpisode');
+  if (inS) temporada = parseInt(inS.value) || 1;
+  if (inE) episodio  = parseInt(inE.value) || 1;
+  if (serverAtivo >= 0) playServer(serverAtivo);
+}
+
+// ═══════════════════════════════════════════════════════════
+// IPTV — CANAIS AO VIVO
+// ═══════════════════════════════════════════════════════════
+var IPTV_SOURCES = [
+  'https://iptv-org.github.io/iptv/countries/br.m3u',
+  'https://iptv-org.github.io/iptv/countries/pt.m3u',
+];
+
+async function renderLive() {
+  renderNavs();
+  var wrap = document.getElementById('main-content');
+  wrap.innerHTML =
+    '<div class="live-header">' +
+      '<div class="row-title"><span class="dot"></span> 📡 Canais Ao Vivo — IPTV Gratuito</div>' +
+      '<div class="live-filters" id="live-filters"></div>' +
+    '</div>' +
+    '<div class="live-search-wrap">' +
+      '<input class="live-search" id="live-q" type="text" placeholder="Filtrar canais…" oninput="filtrarLive(this.value)">' +
+    '</div>' +
+    '<div class="live-loading" id="live-loading"><div class="spin"></div><p>Carregando canais…</p></div>' +
+    '<div class="channels-grid" id="channels-grid" style="display:none"></div>';
+
+  if (iptvAll.length) { renderChannels(); return; }
+
+  var all = [];
+  for (var i = 0; i < IPTV_SOURCES.length; i++) {
+    try {
+      var r = await fetchT(IPTV_SOURCES[i], 12000);
+      if (!r.ok) continue;
+      var txt = await r.text();
+      var parsed = parseM3U(txt);
+      parsed.forEach(function(ch) { all.push(ch); });
+    } catch(e) { /* fonte falhou, continua */ }
+  }
+
+  iptvAll = all;
+  iptvFiltrado = all.slice();
+  renderChannels();
+}
+
+function parseM3U(txt) {
+  var lines = txt.split('\n');
+  var channels = [], cur = {};
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i].trim();
+    if (line.startsWith('#EXTINF')) {
+      cur = {};
+      var nm = line.match(/,(.+)$/);       if (nm) cur.name = nm[1].trim();
+      var lo = line.match(/tvg-logo="([^"]+)"/); if (lo) cur.logo = lo[1];
+      var gr = line.match(/group-title="([^"]+)"/); if (gr) cur.group = gr[1];
+    } else if (line && !line.startsWith('#') && cur.name) {
+      cur.url = line;
+      channels.push(Object.assign({}, cur));
+      cur = {};
+    }
+  }
+  return channels;
+}
+
+function getGrupos() {
+  var seen = {}, grupos = [];
+  iptvAll.forEach(function(ch) {
+    var g = ch.group || 'Outros';
+    if (!seen[g]) { seen[g] = true; grupos.push(g); }
+  });
+  return grupos.slice(0, 12);
+}
+
+function renderChannels() {
+  var loading = document.getElementById('live-loading');
+  var grid    = document.getElementById('channels-grid');
+  var filters = document.getElementById('live-filters');
+  if (!loading || !grid) return;
+
+  if (!iptvFiltrado.length) {
+    loading.innerHTML = '<div class="live-empty"><div class="icon" style="font-size:36px">📡</div><p>Nenhum canal encontrado.</p></div>';
+    return;
+  }
+  loading.style.display = 'none';
+  grid.style.display = 'flex';
+
+  // Filtros de categoria
+  if (filters) {
+    var grupos = getGrupos();
+    var btns = '<button class="filter-btn ' + (iptvCategoria === 'todos' ? 'ativo' : '') + '" onclick="setCat(\'todos\')">Todos (' + iptvAll.length + ')</button>';
+    grupos.forEach(function(g) {
+      btns += '<button class="filter-btn ' + (iptvCategoria === g ? 'ativo' : '') + '" onclick="setCat(\'' + g.replace(/'/g, "\\'") + '\')">' + esc(g) + '</button>';
+    });
+    filters.innerHTML = btns;
+  }
+
+  var shown = iptvFiltrado.slice(0, 300);
+  grid.innerHTML = shown.map(function(ch, idx) {
+    var logoHtml = ch.logo
+      ? '<img class="ch-logo" src="' + esc(ch.logo) + '" loading="lazy" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'flex\'">' +
+        '<span class="ch-logo-fb" style="display:none">📺</span>'
+      : '<span class="ch-logo-fb">📺</span>';
+    return '<div class="ch-card" onclick="playChannel(' + idx + ')">' +
+      '<div class="ch-logo-wrap">' + logoHtml + '</div>' +
+      '<div class="ch-info">' +
+        '<div class="ch-name">' + esc(ch.name) + '</div>' +
+        (ch.group ? '<div class="ch-group">' + esc(ch.group) + '</div>' : '') +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function setCat(cat) {
+  iptvCategoria = cat;
+  if (cat === 'todos') {
+    iptvFiltrado = iptvAll.slice();
+  } else {
+    iptvFiltrado = iptvAll.filter(function(ch){ return (ch.group || 'Outros') === cat; });
+  }
+  var q = (document.getElementById('live-q') || {}).value || '';
+  if (q) {
+    var ql = q.toLowerCase();
+    iptvFiltrado = iptvFiltrado.filter(function(ch){ return (ch.name || '').toLowerCase().includes(ql); });
+  }
+  renderChannels();
+}
+
+function filtrarLive(q) {
+  var src = iptvCategoria === 'todos' ? iptvAll : iptvAll.filter(function(ch){ return (ch.group || 'Outros') === iptvCategoria; });
+  if (!q) { iptvFiltrado = src.slice(); }
+  else {
+    var ql = q.toLowerCase();
+    iptvFiltrado = src.filter(function(ch){ return (ch.name || '').toLowerCase().includes(ql) || (ch.group || '').toLowerCase().includes(ql); });
+  }
+  renderChannels();
+  setTimeout(function() {
+    var el = document.getElementById('live-q');
+    if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+  }, 10);
+}
+
+function playChannel(idx) {
+  var ch = iptvFiltrado[idx];
+  if (!ch || !ch.url) return;
+
+  document.getElementById('iptv-titulo').textContent = ch.name || 'Canal';
+  document.getElementById('iptv-grupo').textContent  = ch.group || '';
+  document.getElementById('modal-iptv').classList.add('aberto');
+
+  var video   = document.getElementById('iptv-video');
+  var overlay = document.getElementById('iptv-overlay');
+  overlay.style.display = 'flex';
+  overlay.innerHTML = '<div class="spin"></div><p>Carregando ' + esc(ch.name) + '…</p>';
+
+  if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+  video.src = '';
+
+  var url = ch.url;
+  var isHls = url.includes('.m3u8') || url.includes('m3u8') || url.includes('/live') || url.includes(':8080') || url.includes(':1935');
+
+  if (isHls && typeof Hls !== 'undefined' && Hls.isSupported()) {
+    hlsInstance = new Hls({ enableWorker: false, maxBufferLength: 30 });
+    hlsInstance.loadSource(url);
+    hlsInstance.attachMedia(video);
+    hlsInstance.on(Hls.Events.MANIFEST_PARSED, function() {
+      overlay.style.display = 'none';
+      video.play().catch(function(){});
+    });
+    hlsInstance.on(Hls.Events.ERROR, function(evt, data) {
+      if (data.fatal) erroIPTV();
+    });
+  } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    video.src = url;
+    video.addEventListener('loadedmetadata', function() {
+      overlay.style.display = 'none';
+      video.play();
+    }, { once: true });
+    video.addEventListener('error', erroIPTV, { once: true });
+  } else {
+    video.src = url;
+    video.addEventListener('canplay', function() { overlay.style.display = 'none'; }, { once: true });
+    video.play().catch(erroIPTV);
+  }
+}
+
+function erroIPTV() {
+  var overlay = document.getElementById('iptv-overlay');
+  overlay.style.display = 'flex';
+  overlay.innerHTML =
+    '<span style="font-size:36px">⚠️</span>' +
+    '<p>Não foi possível reproduzir este canal.</p>' +
+    '<small>O stream pode estar offline ou bloqueado pelo navegador (CORS).</small>';
+}
+
+document.getElementById('iptv-fechar').onclick = function() {
+  var video = document.getElementById('iptv-video');
+  video.pause(); video.src = '';
+  if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+  document.getElementById('modal-iptv').classList.remove('aberto');
+};
+
+// ═══════════════════════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════════════════════
+document.getElementById('btn-cfg').onclick = function() {
+  document.getElementById('settings-tmdb').value = tmdbKey;
+  document.getElementById('tela-settings').classList.add('aberta');
+};
+document.getElementById('settings-cancelar').onclick = function() {
+  document.getElementById('tela-settings').classList.remove('aberta');
+};
+document.getElementById('settings-salvar').onclick = function() {
+  tmdbKey = (document.getElementById('settings-tmdb').value || '').trim();
+  try { localStorage.setItem('sf_tmdb', tmdbKey); } catch(e){}
+  document.getElementById('tela-settings').classList.remove('aberta');
+};
+document.getElementById('tela-settings').addEventListener('click', function(e) {
+  if (e.target === this) this.classList.remove('aberta');
+});
+
+// ═══════════════════════════════════════════════════════════
+// SCROLL HEADER
+// ═══════════════════════════════════════════════════════════
+window.addEventListener('scroll', function() {
+  document.getElementById('header').classList.toggle('scrolled', window.scrollY > 50);
+});
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+renderNavs();
+carregarCatalogo();
+</script>
+</body>
+</html>
