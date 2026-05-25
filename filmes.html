@@ -454,13 +454,13 @@ var SERVERS = [
   },
   {
     name: 'SuperEmbed', icon: '🚀', color: '#06b6d4', rec: false,
-    movie:  function(item)      { if(item.tmdbId) return 'https://multiembed.mov/?video_id=' + item.tmdbId + '&tmdb=1'; return 'https://multiembed.mov/?video_id=' + item.imdbId + '&tmdb=0'; },
-    series: function(item, s, e){ if(item.tmdbId) return 'https://multiembed.mov/?video_id=' + item.tmdbId + '&tmdb=1&s=' + s + '&e=' + e; return 'https://multiembed.mov/?video_id=' + item.imdbId + '&tmdb=0&s=' + s + '&e=' + e; }
+    movie:  function(item)      { var lang = (typeof currentLang !== 'undefined' ? currentLang : 'pt'); if(item.tmdbId) return 'https://multiembed.mov/?video_id=' + item.tmdbId + '&tmdb=1&lang=' + lang; return 'https://multiembed.mov/?video_id=' + item.imdbId + '&tmdb=0&lang=' + lang; },
+    series: function(item, s, e){ var lang = (typeof currentLang !== 'undefined' ? currentLang : 'pt'); if(item.tmdbId) return 'https://multiembed.mov/?video_id=' + item.tmdbId + '&tmdb=1&s=' + s + '&e=' + e + '&lang=' + lang; return 'https://multiembed.mov/?video_id=' + item.imdbId + '&tmdb=0&s=' + s + '&e=' + e + '&lang=' + lang; }
   },
   {
     name: 'VidSrc Pro', icon: '⚡', color: '#ffd700', rec: false,
-    movie:  function(item)      { var id = item.tmdbId || item.imdbId; return 'https://vidsrc.pro/embed/movie/' + id; },
-    series: function(item, s, e){ var id = item.tmdbId || item.imdbId; return 'https://vidsrc.pro/embed/tv/' + id + '/' + s + '/' + e; }
+    movie:  function(item)      { var id = item.tmdbId || item.imdbId; var lang = (typeof tmdbLang === 'function' ? tmdbLang() : 'pt-BR'); return 'https://vidsrc.pro/embed/movie/' + id + '?lang=' + lang; },
+    series: function(item, s, e){ var id = item.tmdbId || item.imdbId; var lang = (typeof tmdbLang === 'function' ? tmdbLang() : 'pt-BR'); return 'https://vidsrc.pro/embed/tv/' + id + '/' + s + '/' + e + '?lang=' + lang; }
   }
 ];
 
@@ -473,12 +473,12 @@ var ANIME_SERVERS = [
     anime: function(malId, ep) { return 'https://vidsrc.pro/embed/anime?mal=' + malId + '&ep=' + ep; }
   },
   {
-    name: 'Embed.su', icon: '🎌', color: '#7c3aed', rec: false,
-    anime: function(malId, ep) { return 'https://embed.su/embed/anime/' + malId + '/' + ep; }
+    name: 'VidSrc.me', icon: '🎌', color: '#7c3aed', rec: false,
+    anime: function(malId, ep) { return 'https://vidsrc.me/embed/anime?myanimelist=' + malId + '&ep=' + ep; }
   },
   {
-    name: 'VidSrc.to', icon: '📺', color: '#06b6d4', rec: false,
-    anime: function(malId, ep) { return 'https://vidsrc.to/embed/anime/' + malId + '/' + ep; }
+    name: 'VidSrc.xyz', icon: '📺', color: '#06b6d4', rec: false,
+    anime: function(malId, ep) { return 'https://vidsrc.xyz/embed/anime?malId=' + malId + '&ep=' + ep; }
   },
   {
     name: '2Anime', icon: '🔵', color: '#2563eb', rec: false,
@@ -1260,22 +1260,21 @@ function normalizeJikan(a) {
 // ═══════════════════════════════════════════════════════════
 async function carregarCatalogo() {
   function nj(arr){ return (arr && arr.data ? arr.data : []).map(normalizeJikan); }
+  function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
 
-  // ── Anime (sempre via Jikan, tem idioma inglês/japonês) ──
-  var animeResults = await Promise.all([
-    jikanFetch('/top/anime?limit=36&filter=bypopularity'),
-    jikanFetch('/seasons/now?limit=30'),
-    jikanFetch('/top/anime?limit=24&filter=airing'),
-    jikanFetch('/top/anime?limit=20&type=movie'),
-    jikanFetch('/top/anime?limit=20&genres=1'),
-    jikanFetch('/top/anime?limit=20&genres=36'),
-  ]);
-  var anime        = nj(animeResults[0]);
-  var airing       = nj(animeResults[1]);
-  var animeAiring  = nj(animeResults[2]);
-  var animeMovies  = nj(animeResults[3]);
-  var animeAction  = nj(animeResults[4]);
-  var animeSlice   = nj(animeResults[5]);
+  // ── Anime via Jikan — requisições em série p/ evitar 429 (rate limit) ──
+  var anime, airing, animeAiring, animeMovies, animeAction, animeSlice;
+  try {
+    var r0 = await jikanFetch('/top/anime?limit=25&page=1'); anime       = nj(r0); await sleep(350);
+    var r1 = await jikanFetch('/seasons/now?limit=25');       airing      = nj(r1); await sleep(350);
+    var r2 = await jikanFetch('/top/anime?limit=25&filter=airing'); animeAiring = nj(r2); await sleep(350);
+    var r3 = await jikanFetch('/top/anime?limit=20&type=movie');    animeMovies = nj(r3); await sleep(350);
+    var r4 = await jikanFetch('/top/anime?limit=20&genres=1');      animeAction = nj(r4); await sleep(350);
+    var r5 = await jikanFetch('/top/anime?limit=20&genres=36');     animeSlice  = nj(r5);
+  } catch(e) {
+    anime = anime || []; airing = airing || []; animeAiring = animeAiring || [];
+    animeMovies = animeMovies || []; animeAction = animeAction || []; animeSlice = animeSlice || [];
+  }
 
   var movies, series, trending, action, horror, scifi, crime, docs,
       animation, dramas, crimeS, thriller, comedy, romance, family,
@@ -1634,7 +1633,7 @@ function setupInfinite(tab, genre) {
   var genres = tab === 'movies' ? getMovieGenres() : tab === 'series' ? getSeriesGenres() : tab === 'anime' ? getAnimeGenres() : getDocGenres();
   var titulo = tab === 'movies' ? t('movies') : tab === 'series' ? t('series') : tab === 'anime' ? t('anime') : t('documentaries');
 
-  var tabsHtml = '<div class="cat-tabs-wrap"><div class="cat-tabs">';
+  var tabsHtml = '<div class="cat-tabs-wrap"><div style="font-family:\'Bebas Neue\',sans-serif;font-size:22px;letter-spacing:1px;padding:0 0 8px;display:flex;align-items:center;gap:8px"><span style="width:7px;height:7px;border-radius:50%;background:var(--accent);display:inline-block"></span>' + titulo + '</div><div class="cat-tabs">';
   genres.forEach(function(g) {
     tabsHtml += '<button class="cat-tab' + (genre === g.id ? ' ativo' : '') + '" onclick="switchInfGenre(\'' + tab + '\',\'' + g.id + '\')">' + g.label + '</button>';
   });
@@ -1782,7 +1781,7 @@ async function fetchAnimeInfinite(genre, page) {
 
   var path;
   if (genre === 'top') {
-    path = '/top/anime?limit=25&page=' + page + '&filter=bypopularity';
+    path = '/top/anime?limit=25&page=' + page;
   } else if (genre === 'airing') {
     path = '/top/anime?limit=25&page=' + page + '&filter=airing';
   } else if (genre === 'movie') {
@@ -2178,9 +2177,14 @@ function playServer(idx, isAuto) {
   try { localStorage.setItem('sf_last_srv', idx); } catch(e) {}
 
   // Monta player com label do servidor
+  var langNote = '';
+  if (typeof currentLang !== 'undefined' && currentLang !== 'en') {
+    langNote = '<span style="font-size:10px;color:var(--text2);margin-left:8px;background:rgba(255,255,255,.07);padding:2px 8px;border-radius:4px" title="O idioma do vídeo depende do servidor. Use VidSrc Pro ou SuperEmbed para tentar dobragem.">🌐 idioma depende do servidor</span>';
+  }
   document.getElementById('embed-area').innerHTML =
     '<div class="auto-playing-label">▶ ' + t('playingVia') + ' <strong>' + esc(srv.name) + '</strong>' +
       (isAuto ? ' <span class="auto-tag">' + t('auto') + '</span>' : '') +
+      langNote +
     '</div>' +
     '<div class="embed-player-wrap" id="embed-wrap">' +
       '<iframe id="embed-iframe" src="' + url + '" allow="autoplay; encrypted-media; fullscreen; picture-in-picture; web-share; clipboard-write; xr-spatial-tracking; payment; microphone; camera; gyroscope; accelerometer" referrerpolicy="no-referrer-when-downgrade"></iframe>' +
