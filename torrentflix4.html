@@ -435,23 +435,28 @@ input{font-family:inherit;color:inherit}
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
 <script>
 // ═══════════════════════════════════════════════════════════
-// SERVIDORES DE STREAMING EMBED (gratuitos, via IMDB ID)
+// SERVIDORES DE STREAMING EMBED (TMDB ID + IMDB ID)
 // ═══════════════════════════════════════════════════════════
 var SERVERS = [
   {
     name: 'VidSrc',   icon: '🎬', color: '#e50914', rec: true,
-    movie:  function(id)      { return 'https://vidsrc.to/embed/movie/' + id; },
-    series: function(id, s, e){ return 'https://vidsrc.to/embed/tv/' + id + '/' + s + '/' + e; }
+    movie:  function(item)      { var id = item.tmdbId || item.imdbId; return 'https://vidsrc.to/embed/movie/' + id; },
+    series: function(item, s, e){ var id = item.tmdbId || item.imdbId; return 'https://vidsrc.to/embed/tv/' + id + '/' + s + '/' + e; }
   },
   {
     name: '2Embed',   icon: '📺', color: '#0891b2', rec: false,
-    movie:  function(id)      { return 'https://www.2embed.cc/embed/' + id; },
-    series: function(id, s, e){ return 'https://www.2embed.cc/embedtv/' + id + '&s=' + s + '&e=' + e; }
+    movie:  function(item)      { var id = item.imdbId || item.tmdbId; return 'https://www.2embed.cc/embed/' + id; },
+    series: function(item, s, e){ var id = item.imdbId || item.tmdbId; return 'https://www.2embed.cc/embedtv/' + id + '&s=' + s + '&e=' + e; }
   },
   {
     name: 'SuperEmbed', icon: '🚀', color: '#06b6d4', rec: false,
-    movie:  function(id)      { return 'https://multiembed.mov/?video_id=' + id + '&tmdb=0'; },
-    series: function(id, s, e){ return 'https://multiembed.mov/?video_id=' + id + '&tmdb=0&s=' + s + '&e=' + e; }
+    movie:  function(item)      { if(item.tmdbId) return 'https://multiembed.mov/?video_id=' + item.tmdbId + '&tmdb=1'; return 'https://multiembed.mov/?video_id=' + item.imdbId + '&tmdb=0'; },
+    series: function(item, s, e){ if(item.tmdbId) return 'https://multiembed.mov/?video_id=' + item.tmdbId + '&tmdb=1&s=' + s + '&e=' + e; return 'https://multiembed.mov/?video_id=' + item.imdbId + '&tmdb=0&s=' + s + '&e=' + e; }
+  },
+  {
+    name: 'VidSrc Pro', icon: '⚡', color: '#ffd700', rec: false,
+    movie:  function(item)      { var id = item.tmdbId || item.imdbId; return 'https://vidsrc.pro/embed/movie/' + id; },
+    series: function(item, s, e){ var id = item.tmdbId || item.imdbId; return 'https://vidsrc.pro/embed/tv/' + id + '/' + s + '/' + e; }
   }
 ];
 
