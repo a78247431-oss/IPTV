@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=1280, height=720, initial-scale=1.0">
-<title>K60 TV ANTIGA — FILMES PROTEGIDO</title>
+<title>K60 TV ANTIGA</title>
 
 <style>
 /* =========================================================
@@ -45,14 +45,12 @@ html, body {
   font-weight: bold;
   color: #00ff88;
   letter-spacing: 8px;
-  text-shadow: 0 0 5px #00aa44;
 }
 
 .brand-tagline {
   margin-top: 10px;
   font-size: 20px;
   color: #999999;
-  letter-spacing: 2px;
 }
 
 /* DIVISÓRIA */
@@ -83,30 +81,30 @@ html, body {
   color: white;
   border: 4px solid #333;
   background: #111;
-  transition: all 0.1s linear;
-  cursor: pointer;
 }
 
 /* CORES INDIVIDUAIS */
 .card-tv1 {
   border-color: #ffaa00;
 }
+
 .card-radio {
   border-color: #00ff88;
 }
+
 .card-filmes {
   border-color: #ff44cc;
 }
+
 .card-tv2 {
   border-color: #00cfff;
 }
 
-/* FOCO E HOVER (TV antiga focus visível) */
+/* FOCO TV */
 .card:focus {
   outline: none;
   background: #222;
   border-width: 6px;
-  transform: scale(1.01);
 }
 
 /* BADGE */
@@ -114,7 +112,6 @@ html, body {
   font-size: 12px;
   font-weight: bold;
   margin-bottom: 15px;
-  letter-spacing: 1px;
 }
 
 /* ÍCONE */
@@ -130,7 +127,6 @@ html, body {
   font-size: 28px;
   font-weight: bold;
   margin-bottom: 15px;
-  letter-spacing: 2px;
 }
 
 /* DESCRIÇÃO */
@@ -145,10 +141,6 @@ html, body {
   margin-top: 25px;
   font-size: 16px;
   font-weight: bold;
-  background: rgba(255,255,255,0.1);
-  display: inline-block;
-  padding: 5px 12px;
-  border-radius: 30px;
 }
 
 /* RODAPÉ */
@@ -166,135 +158,10 @@ html, body {
   text-align: center;
   font-size: 18px;
   color: #00ff88;
-  font-weight: bold;
-  background: #000000aa;
-  padding: 8px 0;
-  letter-spacing: 1px;
-}
-
-/* =========================================================
-   MODAL DE SENHA (ESTILO RETRO / TV)
-   ========================================================= */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(3px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000;
-  visibility: hidden;
-  opacity: 0;
-  transition: visibility 0s, opacity 0.2s;
-}
-
-.modal-overlay.active {
-  visibility: visible;
-  opacity: 1;
-}
-
-.modal-container {
-  background: #0a0a0a;
-  width: 460px;
-  max-width: 90%;
-  border: 4px solid #ff44cc;
-  padding: 30px 25px;
-  text-align: center;
-  box-shadow: 0 0 30px rgba(255,68,204,0.3);
-  font-family: monospace;
-}
-
-.modal-container h2 {
-  font-size: 28px;
-  color: #ff44cc;
-  margin-bottom: 15px;
-  letter-spacing: 3px;
-  font-weight: bold;
-  text-transform: uppercase;
-}
-
-.modal-container p {
-  color: #bbb;
-  margin-bottom: 25px;
-  font-size: 16px;
-}
-
-.modal-senha-input {
-  width: 100%;
-  background: #111;
-  border: 2px solid #ff44cc;
-  padding: 14px 12px;
-  font-size: 26px;
-  text-align: center;
-  color: #00ff88;
-  font-family: monospace;
-  font-weight: bold;
-  letter-spacing: 5px;
-  margin-bottom: 25px;
-  outline: none;
-}
-
-.modal-senha-input:focus {
-  border-color: #ff88dd;
-  background: #000;
-}
-
-.modal-buttons {
-  display: flex;
-  gap: 20px;
-  justify-content: center;
-}
-
-.modal-btn {
-  background: #222;
-  border: 2px solid #ff44cc;
-  color: #ff44cc;
-  padding: 10px 28px;
-  font-size: 20px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: 0.1s linear;
-  font-family: monospace;
-}
-
-.modal-btn:hover {
-  background: #ff44cc;
-  color: #000;
-  border-color: #fff;
-}
-
-.modal-btn-cancel {
-  border-color: #666;
-  color: #ccc;
-}
-
-.modal-btn-cancel:hover {
-  background: #444;
-  color: white;
-  border-color: #aaa;
-}
-
-.error-msg {
-  margin-top: 15px;
-  color: #ff6666;
-  font-size: 16px;
-  min-height: 38px;
-  font-weight: bold;
-  letter-spacing: 1px;
-}
-
-/* ajustes pequenos */
-@media (max-width: 800px) {
-  .card { width: 180px; height: 280px; }
-  .card-title { font-size: 22px; }
-  .brand-k60 { font-size: 54px; }
 }
 </style>
 </head>
+
 <body>
 
 <div class="stage">
@@ -310,7 +177,7 @@ html, body {
   <!-- CARDS -->
   <div class="cards">
 
-    <!-- TV1 (normal) -->
+    <!-- TV1 -->
     <a href="tv.html" class="card card-tv1" tabindex="1">
       <div class="card-badge">● AO VIVO</div>
       <span class="card-icon">📺</span>
@@ -322,7 +189,7 @@ html, body {
       <div class="card-cta">ENTRAR</div>
     </a>
 
-    <!-- RADIO (normal) -->
+    <!-- RADIO -->
     <a href="radio.html" class="card card-radio" tabindex="2">
       <div class="card-badge">● AO VIVO</div>
       <span class="card-icon">📻</span>
@@ -334,19 +201,19 @@ html, body {
       <div class="card-cta">ENTRAR</div>
     </a>
 
-    <!-- FILMES (PROTEGIDO COM SENHA 147258369) -->
-    <a href="javascript:void(0);" class="card card-filmes" tabindex="3" id="filmesCard">
+    <!-- FILMES -->
+    <a href="filmes.html" class="card card-filmes" tabindex="3">
       <div class="card-badge">● FILMES</div>
       <span class="card-icon">🎬</span>
       <div class="card-title">FILMES</div>
       <div class="card-desc">
         Cinema em casa<br>
-        com proteção 🔒
+        sem parar
       </div>
       <div class="card-cta">ENTRAR</div>
     </a>
 
-    <!-- TV2 (normal) -->
+    <!-- TV2 -->
     <a href="fast-tv.html" class="card card-tv2" tabindex="4">
       <div class="card-badge">● FAST</div>
       <span class="card-icon">📡</span>
@@ -366,252 +233,88 @@ html, body {
   <div class="footer">
     K60 BROADCAST · SETAS ← → PARA NAVEGAR · ENTER PARA ENTRAR
   </div>
+
 </div>
 
+<!-- AJUDA -->
 <div class="help-text">
-  🎬 FILMES → SENHA NECESSÁRIA: 147258369 🔐
-</div>
-
-<!-- ========== MODAL DE SENHA (RETRO) ========== -->
-<div id="senhaModal" class="modal-overlay">
-  <div class="modal-container">
-    <h2>🔐 ACESSO RESTRITO</h2>
-    <p>Digite a senha para acessar os FILMES</p>
-    <input type="password" id="senhaInput" class="modal-senha-input" placeholder="******" maxlength="12" autocomplete="off">
-    <div class="modal-buttons">
-      <button id="btnConfirmar" class="modal-btn">CONFIRMAR</button>
-      <button id="btnCancelar" class="modal-btn modal-btn-cancel">CANCELAR</button>
-    </div>
-    <div id="modalErrorMsg" class="error-msg"></div>
-  </div>
+  USE O CONTROLE REMOTO: ← ESQUERDA | → DIREITA | OK / ENTER
 </div>
 
 <script>
 /* =========================================================
-   K60 - CONTROLE DIRECIONAL + SENHA ESPECIAL PARA FILMES
-   SENHA: 147258369
+   CONTROLE DIRECIONAL PARA TV ANTIGA
    ========================================================= */
-
 (function() {
-  // Elementos principais
+
   var cards = document.getElementsByClassName("card");
-  var filmesCard = document.getElementById("filmesCard");
-  var modal = document.getElementById("senhaModal");
-  var senhaInput = document.getElementById("senhaInput");
-  var btnConfirmar = document.getElementById("btnConfirmar");
-  var btnCancelar = document.getElementById("btnCancelar");
-  var errorMsgDiv = document.getElementById("modalErrorMsg");
-  
   var currentIndex = 0;
-  var isModalActive = false;      // impede navegação pelos cards enquanto modal aberto
-  var expectedPassword = "147258369";  // senha definida conforme solicitado
-  
-  // Função para limpar erro e resetar modal
-  function clearModalError() {
-    if (errorMsgDiv) errorMsgDiv.innerText = "";
-  }
-  
-  // Exibir modal com foco no input
-  function showPasswordModal() {
-    if (isModalActive) return;
-    isModalActive = true;
-    modal.classList.add("active");
-    // limpa input e mensagem de erro
-    senhaInput.value = "";
-    clearModalError();
-    // força foco no campo de senha (para usuários com controle / teclado)
-    setTimeout(function() {
-      senhaInput.focus();
-    }, 30);
-    // Travar scroll do fundo (já que body tem overflow hidden, ok)
-  }
-  
-  // Fechar modal sem ações
-  function closeModal() {
-    if (!isModalActive) return;
-    modal.classList.remove("active");
-    isModalActive = false;
-    clearModalError();
-    // reestabelece o foco no card ativo (para não perder referência)
-    if (cards[currentIndex]) {
-      cards[currentIndex].focus();
-    }
-  }
-  
-  // Verificação da senha e redirecionamento
-  function checkPasswordAndRedirect() {
-    var typedPassword = senhaInput.value;
-    if (typedPassword === expectedPassword) {
-      // SENHA CORRETA! Vai para filmes.html
-      closeModal();   // fecha modal antes do redirecionamento
-      window.location.href = "filmes.html";
-    } else {
-      // Senha errada: exibe mensagem vibrante estilo TV
-      errorMsgDiv.innerText = "❌ SENHA INCORRETA! TENTE NOVAMENTE ❌";
-      senhaInput.value = "";
-      senhaInput.focus();
-      // efeito de piscada no campo (opcional)
-      senhaInput.style.borderColor = "#ff3333";
-      setTimeout(function() {
-        senhaInput.style.borderColor = "#ff44cc";
-      }, 300);
-    }
-  }
-  
-  // ----- Ações dos botões do modal -----
-  if (btnConfirmar) {
-    btnConfirmar.addEventListener("click", function(e) {
-      e.preventDefault();
-      checkPasswordAndRedirect();
-    });
-  }
-  
-  if (btnCancelar) {
-    btnCancelar.addEventListener("click", function(e) {
-      e.preventDefault();
-      closeModal();
-    });
-  }
-  
-  // Permitir tecla ENTER dentro do campo de senha para confirmar
-  if (senhaInput) {
-    senhaInput.addEventListener("keydown", function(e) {
-      if (e.keyCode === 13) {  // ENTER
-        e.preventDefault();
-        checkPasswordAndRedirect();
-      } else if (e.keyCode === 27) { // ESC para cancelar
-        e.preventDefault();
-        closeModal();
-      }
-    });
-  }
-  
-  // Fechar modal se clicar no overlay (fundo escuro)
-  if (modal) {
-    modal.addEventListener("click", function(e) {
-      if (e.target === modal) {
-        closeModal();
-      }
-    });
-  }
-  
-  // ----- Funções de navegação por cards (direcional) -----
+
   function setFocus(index) {
-    if (isModalActive) return;  // não mexe nos cards enquanto modal ativo
     if (index < 0) {
       index = cards.length - 1;
     }
+
     if (index >= cards.length) {
       index = 0;
     }
+
     currentIndex = index;
     cards[currentIndex].focus();
   }
-  
-  // Inicialização da navegação
+
+  /* Início */
   window.onload = function() {
     setFocus(0);
   };
-  
-  // Interceptação global de teclado (controle remoto / teclado)
+
+  /* Controle remoto / teclado */
   document.onkeydown = function(e) {
     e = e || window.event;
     var key = e.keyCode;
-    
-    // Se o modal estiver ativo, permitir apenas ESC para fechar, e teclas normais para o input já tratadas
-    if (isModalActive) {
-      if (key === 27) {  // ESC fecha modal
-        e.preventDefault();
-        closeModal();
-      }
-      // para qualquer outra tecla, não interfere nos cards (deixa o input processar)
-      return false;
-    }
-    
-    // Navegação entre cards (sem modal)
-    // ESQUERDA (37) ou CIMA (38)
-    if (key === 37 || key === 38) {
+
+    /* ESQUERDA */
+    if (key === 37) {
       setFocus(currentIndex - 1);
-      e.preventDefault();
       return false;
     }
-    
-    // DIREITA (39) ou BAIXO (40)
-    if (key === 39 || key === 40) {
+
+    /* DIREITA */
+    if (key === 39) {
       setFocus(currentIndex + 1);
-      e.preventDefault();
       return false;
     }
-    
-    // ENTER / OK (13) - aciona o card atual, com tratamento especial para filmes
+
+    /* CIMA */
+    if (key === 38) {
+      setFocus(currentIndex - 1);
+      return false;
+    }
+
+    /* BAIXO */
+    if (key === 40) {
+      setFocus(currentIndex + 1);
+      return false;
+    }
+
+    /* ENTER / OK */
     if (key === 13) {
-      e.preventDefault();
-      var activeCard = cards[currentIndex];
-      if (activeCard) {
-        // Verifica se é o card de filmes (pelo ID ou classe específica)
-        if (activeCard.id === "filmesCard" || activeCard.classList.contains("card-filmes")) {
-          // Card FILMES -> pede senha
-          showPasswordModal();
-        } else {
-          // Outros cards (TV1, Rádio, TV2) vão para o link normalmente
-          var destination = activeCard.getAttribute("href");
-          if (destination && destination !== "javascript:void(0);") {
-            window.location.href = destination;
-          } else if (destination === "javascript:void(0);") {
-            // fallback: nenhum, mas não deve ocorrer em outros cards
-          }
-        }
-      }
+      window.location.href = cards[currentIndex].href;
       return false;
     }
   };
-  
-  // Atualiza índice quando o foco muda entre cards (manualmente com tab ou clique)
+
+  /* Atualiza índice ao focar */
   for (var i = 0; i < cards.length; i++) {
     (function(index) {
       cards[index].onfocus = function() {
-        if (!isModalActive) {
-          currentIndex = index;
-        }
+        currentIndex = index;
       };
     })(i);
   }
-  
-  // IMPEDIR que o clique no card FILMES redirecione direto (pois usamos modal)
-  // além disso, qualquer clique no card de filmes deve abrir a senha
-  if (filmesCard) {
-    filmesCard.addEventListener("click", function(e) {
-      e.preventDefault();       // evita qualquer href (javascript:void(0))
-      e.stopPropagation();
-      if (!isModalActive) {
-        showPasswordModal();
-      }
-      return false;
-    });
-  }
-  
-  // Para garantir que outros cards (tv1, radio, tv2) mantenham o comportamento padrão de clique
-  // Nada adicional necessário, pois os links normais possuem href válido.
-  // Mas prevenimos que algum evento genérico atrapalhe
-  for (var j = 0; j < cards.length; j++) {
-    var card = cards[j];
-    if (card.id !== "filmesCard") {
-      // Mantém comportamento padrão (redirecionamento via href). 
-      // Garante que cliques não conflitem.
-      card.addEventListener("click", function(e) {
-        // Comportamento original do link: o href já vai ser seguido.
-        // Nenhum preventDefault a não ser que queiramos tratar algo extra.
-        // deixamos normal.
-      });
-    }
-  }
-  
-  // EXTRA: Se por algum acaso o usuário tentar "abrir em nova guia" (contexto), não quebra
-  // mas a senha ainda será exigida via modal se clicar. Mantemos a integridade.
-  
-  // Pequeno efeito visual: se tentar sair com a senha incorreta, foco mantido.
-  console.log("K60 TV: Sistema ativo — FILMES protegido com senha 147258369");
+
 })();
 </script>
+
 </body>
 </html>
