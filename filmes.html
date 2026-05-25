@@ -473,16 +473,12 @@ var ANIME_SERVERS = [
     anime: function(malId, ep) { return 'https://vidsrc.pro/embed/anime?mal=' + malId + '&ep=' + ep; }
   },
   {
-    name: 'VidSrc.me', icon: '🎌', color: '#7c3aed', rec: false,
-    anime: function(malId, ep) { return 'https://vidsrc.me/embed/anime?myanimelist=' + malId + '&ep=' + ep; }
-  },
-  {
-    name: 'VidSrc.xyz', icon: '📺', color: '#06b6d4', rec: false,
-    anime: function(malId, ep) { return 'https://vidsrc.xyz/embed/anime?malId=' + malId + '&ep=' + ep; }
-  },
-  {
     name: '2Anime', icon: '🔵', color: '#2563eb', rec: false,
     anime: function(malId, ep) { return 'https://2anime.xyz/embed/' + malId + '/' + ep; }
+  },
+  {
+    name: 'VidSrc.cc', icon: '🎌', color: '#7c3aed', rec: false,
+    anime: function(malId, ep) { return 'https://vidsrc.cc/embed/anime?malId=' + malId + '&ep=' + ep; }
   }
 ];
 
@@ -2646,9 +2642,9 @@ var DIAG_TESTS = [
   { section: null, id:'twoembed',   name:'2Embed',      url:'https://www.2embed.cc/embed/' + DIAG_IMDB,                         type:'embed' },
   { section: null, id:'superembed', name:'SuperEmbed',  url:'https://multiembed.mov/?video_id=' + DIAG_IMDB + '&tmdb=0',        type:'embed' },
   // ── Servidores Anime ──
-  { section: '⛩ Servidores Anime', id:'vidsrc-pro-a', name:'VidSrc Pro ✦ Anime', url:'https://vidsrc.pro/embed/anime?mal=1535&ep=1', type:'embed' },
-  { section: null, id:'embedsu-a',    name:'Embed.su Anime',  url:'https://embed.su/embed/anime/1535/1',                          type:'embed' },
-  { section: null, id:'vidsrc-to-a',  name:'VidSrc.to Anime', url:'https://vidsrc.to/embed/anime/1535/1',                         type:'embed' },
+  { section: '⛩ Servidores Anime', id:'vidsrc-pro-a', name:'VidSrc Pro ✦ Anime',  url:'https://vidsrc.pro/embed/anime?mal=1535&ep=1',      type:'embed' },
+  { section: null, id:'toanime-a',    name:'2Anime',          url:'https://2anime.xyz/embed/1535/1',                      type:'embed' },
+  { section: null, id:'vidsrc-cc-a',  name:'VidSrc.cc Anime', url:'https://vidsrc.cc/embed/anime?malId=1535&ep=1',        type:'embed' },
   // ── IPTV ──
   { section: '📡 Fontes IPTV', id:'iptv-br', name:'IPTV-Org Brasil', url:'https://iptv-org.github.io/iptv/countries/br.m3u', type:'iptv' },
   { section: null,             id:'iptv-pt', name:'IPTV-Org Portugal',url:'https://iptv-org.github.io/iptv/countries/pt.m3u',type:'iptv' },
