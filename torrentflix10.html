@@ -423,12 +423,12 @@ input{font-family:inherit;color:inherit}
       <span class="pill pill-p">Embed.su</span>
       <span class="pill pill-c">IPTV-Org</span>
     </div>
-    <div id="tmdb-lang-banner" style="background:rgba(229,9,20,.08);border:1px solid rgba(229,9,20,.25);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;line-height:1.55;color:var(--text2)">
-      🌐 <strong style="color:var(--text)">Conteúdo no seu idioma:</strong> adicione uma chave TMDB gratuita e os títulos, descrições e catálogo serão exibidos em <strong style="color:var(--accent)" id="tmdb-lang-name">Português (pt-BR)</strong>.<br>
-      <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener" style="color:var(--accent);font-weight:700">Obter chave grátis em themoviedb.org →</a>
+    <div style="background:rgba(0,200,255,.06);border:1px solid rgba(0,200,255,.2);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;line-height:1.55;color:var(--text2)">
+      🌐 Catálogo exibido em <strong style="color:var(--cyan)" id="tmdb-lang-name">Português (pt-BR)</strong> automaticamente via TMDB.<br>
+      Troque o idioma pelo botão 🌐 no topo. Chave personalizada opcional abaixo.
     </div>
-    <label>Chave TMDB (conteúdo no idioma)</label>
-    <input id="settings-tmdb" type="text" placeholder="Chave TMDB v3 (grátis em themoviedb.org)…">
+    <label>Chave TMDB personalizada (opcional)</label>
+    <input id="settings-tmdb" type="text" placeholder="Deixe vazio para usar a chave padrão…">
     <div class="settings-btns">
       <button class="btn-cancel" id="settings-cancelar">Cancelar</button>
       <button class="btn-save" id="settings-salvar">Salvar</button>
@@ -501,10 +501,11 @@ var itemSelecionado = null;
 var temporada = 1, episodio = 1;
 var animeEpisodio = 1;
 var serverAtivo = -1;
-var tmdbKey = '';
+var TMDB_DEFAULT_KEY = '2dca580c2a14b55200e784d157207b4d'; // chave padrão pública
+var tmdbKey = TMDB_DEFAULT_KEY;
 var hlsInstance = null;
 var iptvAll = [], iptvFiltrado = [], iptvCategoria = 'todos';
-try { tmdbKey = localStorage.getItem('sf_tmdb') || ''; } catch(e){}
+try { tmdbKey = localStorage.getItem('sf_tmdb') || TMDB_DEFAULT_KEY; } catch(e){}
 
 // ═══════════════════════════════════════════════════════════
 // TMDB — IDIOMA DO CONTEÚDO
@@ -1162,11 +1163,9 @@ function applyLangUI() {
   if (loadMsg) loadMsg.textContent = t('loadingCatalog');
   var loadSrc = document.getElementById('loading-sources');
   if (loadSrc) loadSrc.textContent = tmdbKey ? ('TMDB (' + tmdbLang() + ') · Jikan · VidSrc · IPTV-Org') : 'Cinemeta · Jikan · VidSrc · IPTV-Org';
-  // Banner TMDB idioma
+  // Banner info idioma ativo
   var langNames = {pt:'Português (pt-BR)',en:'English (en-US)',es:'Español (es-ES)',fr:'Français (fr-FR)',de:'Deutsch (de-DE)',it:'Italiano (it-IT)',ja:'日本語 (ja-JP)',ko:'한국어 (ko-KR)',zh:'中文 (zh-CN)',ru:'Русский (ru-RU)'};
-  var tmdbBanner = document.getElementById('tmdb-lang-banner');
   var tmdbLangName = document.getElementById('tmdb-lang-name');
-  if (tmdbBanner) tmdbBanner.style.display = tmdbKey ? 'none' : 'block';
   if (tmdbLangName) tmdbLangName.textContent = langNames[currentLang] || tmdbLang();
   var srvTitle = document.getElementById('servers-title');
   if (srvTitle) srvTitle.textContent = '▶ ' + t('watchOnline');
@@ -2869,7 +2868,8 @@ document.getElementById('settings-cancelar').onclick = function() {
 };
 document.getElementById('settings-salvar').onclick = function() {
   var oldKey = tmdbKey;
-  tmdbKey = (document.getElementById('settings-tmdb').value || '').trim();
+  var inputKey = (document.getElementById('settings-tmdb').value || '').trim();
+  tmdbKey = inputKey || TMDB_DEFAULT_KEY; // fallback para chave padrão se limpar
   try { localStorage.setItem('sf_tmdb', tmdbKey); } catch(e){}
   document.getElementById('tela-settings').classList.remove('aberta');
   // Se a chave mudou, recarrega catálogo com novo idioma
