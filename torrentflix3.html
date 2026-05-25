@@ -229,6 +229,16 @@ input{font-family:inherit;color:inherit}
 /* SETTINGS */
 #tela-settings{position:fixed;inset:0;z-index:250;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center}
 #tela-settings.aberta{display:flex}
+
+/* LANG DROPDOWN */
+.lang-drop{position:fixed;z-index:160;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:6px;box-shadow:0 12px 40px rgba(0,0,0,.6);display:none;max-height:70vh;overflow-y:auto;min-width:180px}
+.lang-drop.vis{display:block}
+.lang-opt{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:8px;font-size:13px;font-weight:500;color:var(--text);cursor:pointer;transition:all .15s;width:100%;text-align:left;border:none;background:none}
+.lang-opt:hover{background:rgba(255,255,255,.08)}
+.lang-opt.ativo{background:rgba(229,9,20,.15);color:var(--accent);font-weight:700}
+.lang-opt .lflag{font-size:18px;flex-shrink:0}
+.lang-opt .lcheck{margin-left:auto;font-size:14px;opacity:0}
+.lang-opt.ativo .lcheck{opacity:1}
 .settings-box{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px;width:100%;max-width:440px;box-shadow:0 20px 50px rgba(0,0,0,.5)}
 .settings-box h3{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;margin-bottom:6px}
 .settings-box .sub{color:var(--text2);font-size:13px;margin-bottom:18px;line-height:1.5}
@@ -328,12 +338,13 @@ input{font-family:inherit;color:inherit}
       <input id="searchInput" type="text" placeholder="Buscar filmes, séries, animes…">
     </div>
     <button class="btn-cfg" id="btn-diag" title="Diagnóstico de Servidores" style="font-size:15px">🧪</button>
+    <button class="btn-cfg" id="btn-lang" title="Idioma" style="font-size:16px;position:relative">🌐</button>
     <button class="btn-cfg" id="btn-cfg" title="Configurações">⚙</button>
   </div>
   <div id="main-content" style="padding-top:64px;min-height:100vh">
     <div class="loading-screen">
       <div class="spin"></div>
-      <p>Carregando catálogo…</p>
+      <p id="loading-msg">Carregando catálogo…</p>
       <small>Cinemeta · Jikan · VidSrc · IPTV-Org</small>
     </div>
   </div>
@@ -341,6 +352,7 @@ input{font-family:inherit;color:inherit}
 </div>
 
 <button class="scroll-top-btn" id="scrollTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+<div class="lang-drop" id="lang-drop"></div>
 
 <!-- ══════════════════════════════════════ MODAL DETALHE ══════════════════════════════════════ -->
 <div id="tela-modal">
@@ -357,7 +369,7 @@ input{font-family:inherit;color:inherit}
       <div id="modal-ep-sel"></div>
 
       <!-- SERVIDORES -->
-      <div class="servers-title">▶ Assistir Online</div>
+      <div class="servers-title" id="servers-title">▶ Assistir Online</div>
       <div class="server-grid" id="server-grid"></div>
       <div id="embed-area"></div>
     </div>
@@ -484,6 +496,590 @@ var tmdbKey = '';
 var hlsInstance = null;
 var iptvAll = [], iptvFiltrado = [], iptvCategoria = 'todos';
 try { tmdbKey = localStorage.getItem('sf_tmdb') || ''; } catch(e){}
+
+// ═══════════════════════════════════════════════════════════
+// SISTEMA DE IDIOMAS (i18n)
+// ═══════════════════════════════════════════════════════════
+var LANGS = {
+  'pt':{flag:'🇧🇷',name:'Português',
+    home:'Início',movies:'Filmes',series:'Séries',anime:'Anime',docs:'Docs',live:'Ao Vivo',
+    searchPh:'Buscar filmes, séries, animes…',loadingCatalog:'Carregando catálogo…',
+    featured:'em Destaque',watchNow:'Assistir Agora',moreInfo:'Mais Informações',
+    trending:'Em Alta',popularMovies:'Filmes Populares',featuredSeries:'Séries em Destaque',
+    topAnime:'Anime Top',documentaries:'Documentários',noResults:'Nada encontrado',
+    searching:'Buscando',noResultsFor:'Nenhum resultado para',resultsFor:'Resultados para',
+    movie:'Filme',serie:'Série',
+    season:'Temporada',episode:'Episódio',search:'Buscar',of:'de',eps:'eps',seasons:'temp.',
+    watchOnline:'Assistir Online',noServer:'Nenhum servidor disponível agora.',
+    allFailed:'Todos os servidores falharam.',tryAgainLater:'Tente novamente em alguns instantes.',
+    disableAdblock:'Desative AdBlock/uBlock ou use aba anônima (Ctrl+Shift+N).',
+    openNewTab:'Abrir em Nova Aba',tryNextServer:'Tentar Próximo Servidor',tryNext:'Tentar Próximo',
+    playingVia:'Reproduzindo via',auto:'AUTO',serverBlocked:'Servidor bloqueado pelo browser.',
+    blockedBy:'Extensão do browser bloqueou o player.',
+    noAnimeServer:'Nenhum servidor de anime disponível agora.',tryOtherEp:'Tente novamente em alguns instantes ou use outro número de episódio.',
+    noDesc:'Sem descrição disponível.',loadError:'Erro ao carregar detalhes. Tente novamente.',
+    watchAt:'ID não disponível — assista diretamente em:',
+    liveChannels:'Canais Ao Vivo — IPTV Gratuito',filterChannels:'Filtrar canais…',
+    loadingChannels:'Carregando canais…',noChannel:'Nenhum canal encontrado.',
+    loadingCh:'Carregando',channelError:'Não foi possível reproduzir este canal.',
+    channelErrorSub:'O stream pode estar offline ou bloqueado pelo navegador (CORS).',
+    all:'Todos',
+    settings:'Configurações',settingsDesc:'StreamFlix usa <strong>APIs públicas e gratuitas</strong> — sem torrent, sem cadastro, sem instalar nada.',
+    tmdbLabel:'Chave TMDB (opcional — metadados extras)',tmdbPh:'Chave TMDB v3 (opcional)…',
+    cancel:'Cancelar',save:'Salvar',language:'Idioma',
+    diag:'Diagnóstico de Servidores',diagSub:'Testando conectividade com APIs e servidores de streaming…',
+    diagTestAgain:'Testar Novamente',diagTesting:'Testando…',diagWait:'Aguardando…',
+    diagAllOk:'Tudo funcionando!',diagServicesOnline:'serviços online.',
+    diagPartial:'com falha',diagWarnings:'avisos',diagUseFallback:'use os servidores marcados como ✅.',
+    diagFailed:'serviços falharam. Verifique sua conexão ou tente mais tarde.',
+    diagServerResp:'Servidor respondeu (modo no-cors)',diagTimeout:'Timeout — servidor pode estar fora',
+    diagItemsReceived:'itens recebidos',diagChannelsFound:'canais encontrados',
+    diagSupported:'Suportado pelo browser',diagNativeHls:'HLS nativo disponível',diagHlsNotLoaded:'hls.js não carregado',
+    diagEnabled:'Habilitado',diagNotSupported:'Não suportado ou bloqueado por extensão',
+    diagEmeAvail:'requestMediaKeySystemAccess disponível',diagEmeNo:'Não suportado — iframes de EME podem falhar',
+    diagOnline:'Online',diagOffline:'Offline',diagInUse:'Em uso',
+    testServers:'Testando servidores disponíveis…',testAnimeServers:'Testando servidores de anime…',
+    titlesLoaded:'títulos carregados',loadingMore:'Carregando mais…',endOfCatalog:'fim do catálogo',
+    noContent:'Nenhum conteúdo encontrado',
+    popular:'Populares',action:'Ação',comedy:'Comédia',scifi:'Ficção Científica',
+    horror:'Terror',thriller:'Thriller',romance:'Romance',adventure:'Aventura',
+    fantasy:'Fantasia',family:'Família',crime:'Crime',animation:'Animação',
+    drama:'Drama',war:'Guerra',mystery:'Mistério',western:'Western',
+    history:'História',music:'Musical',airing:'Em Exibição',sliceOfLife:'Slice of Life',
+    animeMovies:'Filmes',sports:'Esportes',psychological:'Psicológico',mecha:'Mecha',
+    military:'Militar',shoujo:'Shoujo',shounen:'Shounen',
+    allDocs:'Todos',biographies:'Biografias',
+    airingNow:'Em Exibição Agora',actionBattle:'Ação / Batalha',
+    serverBlockedName:'Servidor {name} bloqueado.',blockedName:'Extensão bloqueou {name}.',
+    serverBlockedTrying:'Servidor {name} bloqueado, tentando próximo…',
+  },
+  'en':{flag:'🇺🇸',name:'English',
+    home:'Home',movies:'Movies',series:'Series',anime:'Anime',docs:'Docs',live:'Live TV',
+    searchPh:'Search movies, series, anime…',loadingCatalog:'Loading catalog…',
+    featured:'Featured',watchNow:'Watch Now',moreInfo:'More Info',
+    trending:'Trending',popularMovies:'Popular Movies',featuredSeries:'Featured Series',
+    topAnime:'Top Anime',documentaries:'Documentaries',noResults:'Nothing found',
+    searching:'Searching',noResultsFor:'No results for',resultsFor:'Results for',
+    movie:'Movie',serie:'Series',
+    season:'Season',episode:'Episode',search:'Search',of:'of',eps:'eps',seasons:'seasons',
+    watchOnline:'Watch Online',noServer:'No server available right now.',
+    allFailed:'All servers failed.',tryAgainLater:'Try again in a moment.',
+    disableAdblock:'Disable AdBlock/uBlock or use incognito mode (Ctrl+Shift+N).',
+    openNewTab:'Open in New Tab',tryNextServer:'Try Next Server',tryNext:'Try Next',
+    playingVia:'Playing via',auto:'AUTO',serverBlocked:'Server blocked by browser.',
+    blockedBy:'Browser extension blocked the player.',
+    noAnimeServer:'No anime server available right now.',tryOtherEp:'Try again in a moment or use another episode number.',
+    noDesc:'No description available.',loadError:'Error loading details. Try again.',
+    watchAt:'ID not available — watch directly at:',
+    liveChannels:'Live Channels — Free IPTV',filterChannels:'Filter channels…',
+    loadingChannels:'Loading channels…',noChannel:'No channels found.',
+    loadingCh:'Loading',channelError:'Could not play this channel.',
+    channelErrorSub:'The stream may be offline or blocked by the browser (CORS).',
+    all:'All',
+    settings:'Settings',settingsDesc:'StreamFlix uses <strong>free public APIs</strong> — no torrent, no signup, no installs.',
+    tmdbLabel:'TMDB Key (optional — extra metadata)',tmdbPh:'TMDB v3 key (optional)…',
+    cancel:'Cancel',save:'Save',language:'Language',
+    diag:'Server Diagnostics',diagSub:'Testing connectivity with APIs and streaming servers…',
+    diagTestAgain:'Test Again',diagTesting:'Testing…',diagWait:'Waiting…',
+    diagAllOk:'Everything working!',diagServicesOnline:'services online.',
+    diagPartial:'failed',diagWarnings:'warnings',diagUseFallback:'use the servers marked ✅.',
+    diagFailed:'services failed. Check your connection or try again later.',
+    diagServerResp:'Server responded (no-cors mode)',diagTimeout:'Timeout — server may be down',
+    diagItemsReceived:'items received',diagChannelsFound:'channels found',
+    diagSupported:'Supported by browser',diagNativeHls:'Native HLS available',diagHlsNotLoaded:'hls.js not loaded',
+    diagEnabled:'Enabled',diagNotSupported:'Not supported or blocked by extension',
+    diagEmeAvail:'requestMediaKeySystemAccess available',diagEmeNo:'Not supported — EME iframes may fail',
+    diagOnline:'Online',diagOffline:'Offline',diagInUse:'In use',
+    testServers:'Testing available servers…',testAnimeServers:'Testing anime servers…',
+    titlesLoaded:'titles loaded',loadingMore:'Loading more…',endOfCatalog:'end of catalog',
+    noContent:'No content found',
+    popular:'Popular',action:'Action',comedy:'Comedy',scifi:'Sci-Fi',
+    horror:'Horror',thriller:'Thriller',romance:'Romance',adventure:'Adventure',
+    fantasy:'Fantasy',family:'Family',crime:'Crime',animation:'Animation',
+    drama:'Drama',war:'War',mystery:'Mystery',western:'Western',
+    history:'History',music:'Music',airing:'Airing',sliceOfLife:'Slice of Life',
+    animeMovies:'Movies',sports:'Sports',psychological:'Psychological',mecha:'Mecha',
+    military:'Military',shoujo:'Shoujo',shounen:'Shounen',
+    allDocs:'All',biographies:'Biographies',
+    airingNow:'Airing Now',actionBattle:'Action / Battle',
+    serverBlockedName:'Server {name} blocked.',blockedName:'Extension blocked {name}.',
+    serverBlockedTrying:'Server {name} blocked, trying next…',
+  },
+  'es':{flag:'🇪🇸',name:'Español',
+    home:'Inicio',movies:'Películas',series:'Series',anime:'Anime',docs:'Docs',live:'En Vivo',
+    searchPh:'Buscar películas, series, anime…',loadingCatalog:'Cargando catálogo…',
+    featured:'Destacado',watchNow:'Ver Ahora',moreInfo:'Más Info',
+    trending:'Tendencia',popularMovies:'Películas Populares',featuredSeries:'Series Destacadas',
+    topAnime:'Top Anime',documentaries:'Documentales',noResults:'Nada encontrado',
+    searching:'Buscando',noResultsFor:'Sin resultados para',resultsFor:'Resultados para',
+    movie:'Película',serie:'Serie',
+    season:'Temporada',episode:'Episodio',search:'Buscar',of:'de',eps:'eps',seasons:'temp.',
+    watchOnline:'Ver Online',noServer:'Ningún servidor disponible ahora.',
+    allFailed:'Todos los servidores fallaron.',tryAgainLater:'Intente de nuevo en unos momentos.',
+    disableAdblock:'Desactive AdBlock/uBlock o use modo incógnito (Ctrl+Shift+N).',
+    openNewTab:'Abrir en Nueva Pestaña',tryNextServer:'Probar Siguiente Servidor',tryNext:'Probar Siguiente',
+    playingVia:'Reproduciendo vía',auto:'AUTO',serverBlocked:'Servidor bloqueado por el navegador.',
+    blockedBy:'Extensión del navegador bloqueó el reproductor.',
+    noAnimeServer:'Ningún servidor de anime disponible ahora.',tryOtherEp:'Intente de nuevo o use otro número de episodio.',
+    noDesc:'Sin descripción disponible.',loadError:'Error al cargar detalles. Intente de nuevo.',
+    watchAt:'ID no disponible — vea directamente en:',
+    liveChannels:'Canales en Vivo — IPTV Gratis',filterChannels:'Filtrar canales…',
+    loadingChannels:'Cargando canales…',noChannel:'Ningún canal encontrado.',
+    loadingCh:'Cargando',channelError:'No se pudo reproducir este canal.',
+    channelErrorSub:'El stream puede estar offline o bloqueado por el navegador (CORS).',
+    all:'Todos',
+    settings:'Configuración',settingsDesc:'StreamFlix usa <strong>APIs públicas y gratuitas</strong> — sin torrent, sin registro, sin instalar nada.',
+    tmdbLabel:'Clave TMDB (opcional — metadatos extra)',tmdbPh:'Clave TMDB v3 (opcional)…',
+    cancel:'Cancelar',save:'Guardar',language:'Idioma',
+    diag:'Diagnóstico de Servidores',diagSub:'Probando conectividad con APIs y servidores de streaming…',
+    diagTestAgain:'Probar de Nuevo',diagTesting:'Probando…',diagWait:'Esperando…',
+    diagAllOk:'¡Todo funcionando!',diagServicesOnline:'servicios online.',
+    diagPartial:'con fallo',diagWarnings:'avisos',diagUseFallback:'use los servidores marcados como ✅.',
+    diagFailed:'servicios fallaron. Verifique su conexión o intente más tarde.',
+    diagServerResp:'Servidor respondió (modo no-cors)',diagTimeout:'Timeout — servidor puede estar caído',
+    diagItemsReceived:'ítems recibidos',diagChannelsFound:'canales encontrados',
+    diagSupported:'Soportado por el navegador',diagNativeHls:'HLS nativo disponible',diagHlsNotLoaded:'hls.js no cargado',
+    diagEnabled:'Habilitado',diagNotSupported:'No soportado o bloqueado por extensión',
+    diagEmeAvail:'requestMediaKeySystemAccess disponible',diagEmeNo:'No soportado — iframes EME pueden fallar',
+    diagOnline:'Online',diagOffline:'Offline',diagInUse:'En uso',
+    testServers:'Probando servidores disponibles…',testAnimeServers:'Probando servidores de anime…',
+    titlesLoaded:'títulos cargados',loadingMore:'Cargando más…',endOfCatalog:'fin del catálogo',
+    noContent:'Ningún contenido encontrado',
+    popular:'Populares',action:'Acción',comedy:'Comedia',scifi:'Ciencia Ficción',
+    horror:'Terror',thriller:'Thriller',romance:'Romance',adventure:'Aventura',
+    fantasy:'Fantasía',family:'Familia',crime:'Crimen',animation:'Animación',
+    drama:'Drama',war:'Guerra',mystery:'Misterio',western:'Western',
+    history:'Historia',music:'Musical',airing:'En emisión',sliceOfLife:'Slice of Life',
+    animeMovies:'Películas',sports:'Deportes',psychological:'Psicológico',mecha:'Mecha',
+    military:'Militar',shoujo:'Shoujo',shounen:'Shounen',
+    allDocs:'Todos',biographies:'Biografías',
+    airingNow:'En Emisión Ahora',actionBattle:'Acción / Batalla',
+    serverBlockedName:'Servidor {name} bloqueado.',blockedName:'Extensión bloqueó {name}.',
+    serverBlockedTrying:'Servidor {name} bloqueado, probando siguiente…',
+  },
+  'fr':{flag:'🇫🇷',name:'Français',
+    home:'Accueil',movies:'Films',series:'Séries',anime:'Anime',docs:'Docs',live:'En Direct',
+    searchPh:'Rechercher films, séries, anime…',loadingCatalog:'Chargement du catalogue…',
+    featured:'en Vedette',watchNow:'Regarder',moreInfo:'Plus d\'Infos',
+    trending:'Tendances',popularMovies:'Films Populaires',featuredSeries:'Séries en Vedette',
+    topAnime:'Top Anime',documentaries:'Documentaires',noResults:'Rien trouvé',
+    searching:'Recherche',noResultsFor:'Aucun résultat pour',resultsFor:'Résultats pour',
+    movie:'Film',serie:'Série',
+    season:'Saison',episode:'Épisode',search:'Chercher',of:'de',eps:'éps',seasons:'saisons',
+    watchOnline:'Regarder en Ligne',noServer:'Aucun serveur disponible.',
+    allFailed:'Tous les serveurs ont échoué.',tryAgainLater:'Réessayez dans quelques instants.',
+    disableAdblock:'Désactivez AdBlock/uBlock ou utilisez la navigation privée.',
+    openNewTab:'Ouvrir dans un Nouvel Onglet',tryNextServer:'Serveur Suivant',tryNext:'Suivant',
+    playingVia:'Lecture via',auto:'AUTO',serverBlocked:'Serveur bloqué par le navigateur.',
+    blockedBy:'Extension du navigateur a bloqué le lecteur.',
+    noAnimeServer:'Aucun serveur anime disponible.',tryOtherEp:'Réessayez ou changez de numéro d\'épisode.',
+    noDesc:'Pas de description.',loadError:'Erreur de chargement. Réessayez.',
+    watchAt:'ID indisponible — regardez sur:',
+    liveChannels:'Chaînes en Direct — IPTV Gratuit',filterChannels:'Filtrer les chaînes…',
+    loadingChannels:'Chargement des chaînes…',noChannel:'Aucune chaîne trouvée.',
+    loadingCh:'Chargement',channelError:'Impossible de lire cette chaîne.',
+    channelErrorSub:'Le flux peut être hors ligne ou bloqué par le navigateur (CORS).',
+    all:'Tous',
+    settings:'Paramètres',settingsDesc:'StreamFlix utilise des <strong>APIs publiques et gratuites</strong>.',
+    tmdbLabel:'Clé TMDB (optionnel)',tmdbPh:'Clé TMDB v3 (optionnel)…',
+    cancel:'Annuler',save:'Enregistrer',language:'Langue',
+    diag:'Diagnostic Serveurs',diagSub:'Test de connectivité avec les APIs et serveurs…',
+    diagTestAgain:'Retester',diagTesting:'Test…',diagWait:'En attente…',
+    diagAllOk:'Tout fonctionne!',diagServicesOnline:'services en ligne.',
+    diagPartial:'en échec',diagWarnings:'avertissements',diagUseFallback:'utilisez les serveurs ✅.',
+    diagFailed:'services ont échoué. Vérifiez votre connexion.',
+    diagServerResp:'Serveur a répondu (no-cors)',diagTimeout:'Timeout — serveur peut être hors ligne',
+    diagItemsReceived:'éléments reçus',diagChannelsFound:'chaînes trouvées',
+    diagSupported:'Supporté',diagNativeHls:'HLS natif',diagHlsNotLoaded:'hls.js non chargé',
+    diagEnabled:'Activé',diagNotSupported:'Non supporté',
+    diagEmeAvail:'requestMediaKeySystemAccess disponible',diagEmeNo:'Non supporté',
+    diagOnline:'En ligne',diagOffline:'Hors ligne',diagInUse:'En cours',
+    testServers:'Test des serveurs…',testAnimeServers:'Test des serveurs anime…',
+    titlesLoaded:'titres chargés',loadingMore:'Chargement…',endOfCatalog:'fin du catalogue',
+    noContent:'Aucun contenu trouvé',
+    popular:'Populaires',action:'Action',comedy:'Comédie',scifi:'Science-Fiction',
+    horror:'Horreur',thriller:'Thriller',romance:'Romance',adventure:'Aventure',
+    fantasy:'Fantaisie',family:'Famille',crime:'Crime',animation:'Animation',
+    drama:'Drame',war:'Guerre',mystery:'Mystère',western:'Western',
+    history:'Histoire',music:'Musique',airing:'En cours',sliceOfLife:'Tranche de vie',
+    animeMovies:'Films',sports:'Sports',psychological:'Psychologique',mecha:'Mecha',
+    military:'Militaire',shoujo:'Shoujo',shounen:'Shounen',
+    allDocs:'Tous',biographies:'Biographies',
+    airingNow:'En Cours de Diffusion',actionBattle:'Action / Combat',
+    serverBlockedName:'Serveur {name} bloqué.',blockedName:'Extension a bloqué {name}.',
+    serverBlockedTrying:'Serveur {name} bloqué, essai du suivant…',
+  },
+  'de':{flag:'🇩🇪',name:'Deutsch',
+    home:'Startseite',movies:'Filme',series:'Serien',anime:'Anime',docs:'Dokus',live:'Live-TV',
+    searchPh:'Filme, Serien, Anime suchen…',loadingCatalog:'Katalog wird geladen…',
+    featured:'Empfohlen',watchNow:'Jetzt Ansehen',moreInfo:'Mehr Infos',
+    trending:'Im Trend',popularMovies:'Beliebte Filme',featuredSeries:'Top-Serien',
+    topAnime:'Top Anime',documentaries:'Dokumentarfilme',noResults:'Nichts gefunden',
+    searching:'Suche',noResultsFor:'Keine Ergebnisse für',resultsFor:'Ergebnisse für',
+    movie:'Film',serie:'Serie',
+    season:'Staffel',episode:'Folge',search:'Suchen',of:'von',eps:'Ep.',seasons:'Staffeln',
+    watchOnline:'Online Ansehen',noServer:'Kein Server verfügbar.',
+    allFailed:'Alle Server fehlgeschlagen.',tryAgainLater:'Versuchen Sie es später erneut.',
+    disableAdblock:'AdBlock/uBlock deaktivieren oder Inkognito-Modus nutzen.',
+    openNewTab:'In neuem Tab öffnen',tryNextServer:'Nächster Server',tryNext:'Nächster',
+    playingVia:'Wiedergabe über',auto:'AUTO',serverBlocked:'Server vom Browser blockiert.',
+    blockedBy:'Browsererweiterung hat den Player blockiert.',
+    noAnimeServer:'Kein Anime-Server verfügbar.',tryOtherEp:'Versuchen Sie es erneut oder eine andere Folge.',
+    noDesc:'Keine Beschreibung.',loadError:'Fehler beim Laden. Versuchen Sie es erneut.',
+    watchAt:'ID nicht verfügbar — direkt ansehen auf:',
+    liveChannels:'Live-Kanäle — Kostenloses IPTV',filterChannels:'Kanäle filtern…',
+    loadingChannels:'Kanäle werden geladen…',noChannel:'Keine Kanäle gefunden.',
+    loadingCh:'Laden',channelError:'Kanal konnte nicht abgespielt werden.',
+    channelErrorSub:'Stream offline oder vom Browser blockiert (CORS).',
+    all:'Alle',
+    settings:'Einstellungen',settingsDesc:'StreamFlix nutzt <strong>kostenlose öffentliche APIs</strong>.',
+    tmdbLabel:'TMDB-Schlüssel (optional)',tmdbPh:'TMDB v3 Schlüssel (optional)…',
+    cancel:'Abbrechen',save:'Speichern',language:'Sprache',
+    diag:'Server-Diagnose',diagSub:'Teste Konnektivität mit APIs und Streaming-Servern…',
+    diagTestAgain:'Erneut testen',diagTesting:'Teste…',diagWait:'Warte…',
+    diagAllOk:'Alles funktioniert!',diagServicesOnline:'Dienste online.',
+    diagPartial:'fehlgeschlagen',diagWarnings:'Warnungen',diagUseFallback:'nutzen Sie die ✅ Server.',
+    diagFailed:'Dienste fehlgeschlagen. Überprüfen Sie Ihre Verbindung.',
+    diagServerResp:'Server hat geantwortet (no-cors)',diagTimeout:'Timeout — Server möglicherweise offline',
+    diagItemsReceived:'Elemente empfangen',diagChannelsFound:'Kanäle gefunden',
+    diagSupported:'Unterstützt',diagNativeHls:'Nativer HLS',diagHlsNotLoaded:'hls.js nicht geladen',
+    diagEnabled:'Aktiviert',diagNotSupported:'Nicht unterstützt',
+    diagEmeAvail:'requestMediaKeySystemAccess verfügbar',diagEmeNo:'Nicht unterstützt',
+    diagOnline:'Online',diagOffline:'Offline',diagInUse:'In Benutzung',
+    testServers:'Teste verfügbare Server…',testAnimeServers:'Teste Anime-Server…',
+    titlesLoaded:'Titel geladen',loadingMore:'Lade mehr…',endOfCatalog:'Ende des Katalogs',
+    noContent:'Kein Inhalt gefunden',
+    popular:'Beliebt',action:'Action',comedy:'Komödie',scifi:'Sci-Fi',
+    horror:'Horror',thriller:'Thriller',romance:'Romantik',adventure:'Abenteuer',
+    fantasy:'Fantasy',family:'Familie',crime:'Krimi',animation:'Animation',
+    drama:'Drama',war:'Krieg',mystery:'Mystery',western:'Western',
+    history:'Geschichte',music:'Musik',airing:'Laufend',sliceOfLife:'Slice of Life',
+    animeMovies:'Filme',sports:'Sport',psychological:'Psychologisch',mecha:'Mecha',
+    military:'Militär',shoujo:'Shoujo',shounen:'Shounen',
+    allDocs:'Alle',biographies:'Biografien',
+    airingNow:'Aktuell Laufend',actionBattle:'Action / Kampf',
+    serverBlockedName:'Server {name} blockiert.',blockedName:'Erweiterung hat {name} blockiert.',
+    serverBlockedTrying:'Server {name} blockiert, versuche nächsten…',
+  },
+  'it':{flag:'🇮🇹',name:'Italiano',
+    home:'Home',movies:'Film',series:'Serie TV',anime:'Anime',docs:'Docs',live:'In Diretta',
+    searchPh:'Cerca film, serie, anime…',loadingCatalog:'Caricamento catalogo…',
+    featured:'In Evidenza',watchNow:'Guarda Ora',moreInfo:'Più Info',
+    trending:'Di Tendenza',popularMovies:'Film Popolari',featuredSeries:'Serie in Evidenza',
+    topAnime:'Top Anime',documentaries:'Documentari',noResults:'Nulla trovato',
+    searching:'Cercando',noResultsFor:'Nessun risultato per',resultsFor:'Risultati per',
+    movie:'Film',serie:'Serie',
+    season:'Stagione',episode:'Episodio',search:'Cerca',of:'di',eps:'ep',seasons:'stag.',
+    watchOnline:'Guarda Online',noServer:'Nessun server disponibile.',
+    allFailed:'Tutti i server hanno fallito.',tryAgainLater:'Riprova tra qualche istante.',
+    disableAdblock:'Disattiva AdBlock/uBlock o usa la navigazione in incognito.',
+    openNewTab:'Apri in Nuova Scheda',tryNextServer:'Server Successivo',tryNext:'Successivo',
+    playingVia:'In riproduzione via',auto:'AUTO',serverBlocked:'Server bloccato dal browser.',
+    blockedBy:'Estensione del browser ha bloccato il player.',
+    noAnimeServer:'Nessun server anime disponibile.',tryOtherEp:'Riprova o usa un altro numero di episodio.',
+    noDesc:'Nessuna descrizione.',loadError:'Errore nel caricamento. Riprova.',
+    watchAt:'ID non disponibile — guarda su:',
+    liveChannels:'Canali in Diretta — IPTV Gratis',filterChannels:'Filtra canali…',
+    loadingChannels:'Caricamento canali…',noChannel:'Nessun canale trovato.',
+    loadingCh:'Caricamento',channelError:'Impossibile riprodurre questo canale.',
+    channelErrorSub:'Lo stream potrebbe essere offline o bloccato dal browser (CORS).',
+    all:'Tutti',
+    settings:'Impostazioni',settingsDesc:'StreamFlix usa <strong>API pubbliche e gratuite</strong>.',
+    tmdbLabel:'Chiave TMDB (opzionale)',tmdbPh:'Chiave TMDB v3 (opzionale)…',
+    cancel:'Annulla',save:'Salva',language:'Lingua',
+    diag:'Diagnostica Server',diagSub:'Test connettività API e server di streaming…',
+    diagTestAgain:'Ripeti Test',diagTesting:'Test…',diagWait:'In attesa…',
+    diagAllOk:'Tutto funziona!',diagServicesOnline:'servizi online.',
+    diagPartial:'falliti',diagWarnings:'avvisi',diagUseFallback:'usa i server ✅.',
+    diagFailed:'servizi falliti. Controlla la connessione.',
+    diagServerResp:'Server ha risposto (no-cors)',diagTimeout:'Timeout — server potrebbe essere offline',
+    diagItemsReceived:'elementi ricevuti',diagChannelsFound:'canali trovati',
+    diagSupported:'Supportato',diagNativeHls:'HLS nativo',diagHlsNotLoaded:'hls.js non caricato',
+    diagEnabled:'Abilitato',diagNotSupported:'Non supportato',
+    diagEmeAvail:'requestMediaKeySystemAccess disponibile',diagEmeNo:'Non supportato',
+    diagOnline:'Online',diagOffline:'Offline',diagInUse:'In uso',
+    testServers:'Test server disponibili…',testAnimeServers:'Test server anime…',
+    titlesLoaded:'titoli caricati',loadingMore:'Caricamento…',endOfCatalog:'fine del catalogo',
+    noContent:'Nessun contenuto trovato',
+    popular:'Popolari',action:'Azione',comedy:'Commedia',scifi:'Fantascienza',
+    horror:'Horror',thriller:'Thriller',romance:'Romantico',adventure:'Avventura',
+    fantasy:'Fantasy',family:'Famiglia',crime:'Crimine',animation:'Animazione',
+    drama:'Dramma',war:'Guerra',mystery:'Mistero',western:'Western',
+    history:'Storia',music:'Musicale',airing:'In onda',sliceOfLife:'Slice of Life',
+    animeMovies:'Film',sports:'Sport',psychological:'Psicologico',mecha:'Mecha',
+    military:'Militare',shoujo:'Shoujo',shounen:'Shounen',
+    allDocs:'Tutti',biographies:'Biografie',
+    airingNow:'In Onda Adesso',actionBattle:'Azione / Combattimento',
+    serverBlockedName:'Server {name} bloccato.',blockedName:'Estensione ha bloccato {name}.',
+    serverBlockedTrying:'Server {name} bloccato, provo il successivo…',
+  },
+  'ja':{flag:'🇯🇵',name:'日本語',
+    home:'ホーム',movies:'映画',series:'ドラマ',anime:'アニメ',docs:'ドキュメンタリー',live:'ライブ',
+    searchPh:'映画・ドラマ・アニメを検索…',loadingCatalog:'カタログ読み込み中…',
+    featured:'注目',watchNow:'今すぐ視聴',moreInfo:'詳細',
+    trending:'トレンド',popularMovies:'人気映画',featuredSeries:'注目のドラマ',
+    topAnime:'トップアニメ',documentaries:'ドキュメンタリー',noResults:'見つかりません',
+    searching:'検索中',noResultsFor:'結果なし：',resultsFor:'の結果：',
+    movie:'映画',serie:'ドラマ',
+    season:'シーズン',episode:'エピソード',search:'検索',of:'/',eps:'話',seasons:'シーズン',
+    watchOnline:'オンラインで視聴',noServer:'利用可能なサーバーがありません。',
+    allFailed:'全サーバーが失敗しました。',tryAgainLater:'しばらくしてから再試行してください。',
+    disableAdblock:'AdBlock/uBlockを無効にするかシークレットモードを使用してください。',
+    openNewTab:'新しいタブで開く',tryNextServer:'次のサーバー',tryNext:'次へ',
+    playingVia:'再生中：',auto:'自動',serverBlocked:'ブラウザがサーバーをブロックしました。',
+    blockedBy:'ブラウザ拡張機能がプレーヤーをブロックしました。',
+    noAnimeServer:'アニメサーバーが利用できません。',tryOtherEp:'再試行するか他のエピソードを選択してください。',
+    noDesc:'説明なし。',loadError:'読み込みエラー。もう一度お試しください。',
+    watchAt:'IDがありません — 直接視聴：',
+    liveChannels:'ライブチャンネル — 無料IPTV',filterChannels:'チャンネルを検索…',
+    loadingChannels:'チャンネル読み込み中…',noChannel:'チャンネルが見つかりません。',
+    loadingCh:'読み込み中',channelError:'このチャンネルを再生できません。',
+    channelErrorSub:'ストリームがオフラインかブラウザにブロックされています (CORS)。',
+    all:'すべて',
+    settings:'設定',settingsDesc:'StreamFlixは<strong>無料の公開API</strong>を使用しています。',
+    tmdbLabel:'TMDBキー（任意）',tmdbPh:'TMDB v3キー（任意）…',
+    cancel:'キャンセル',save:'保存',language:'言語',
+    diag:'サーバー診断',diagSub:'APIとストリーミングサーバーの接続テスト中…',
+    diagTestAgain:'再テスト',diagTesting:'テスト中…',diagWait:'待機中…',
+    diagAllOk:'すべて正常！',diagServicesOnline:'サービスオンライン。',
+    diagPartial:'失敗',diagWarnings:'警告',diagUseFallback:'✅のサーバーを使用してください。',
+    diagFailed:'サービスが失敗しました。接続を確認してください。',
+    diagServerResp:'サーバー応答 (no-cors)',diagTimeout:'タイムアウト',
+    diagItemsReceived:'件受信',diagChannelsFound:'チャンネル発見',
+    diagSupported:'対応済み',diagNativeHls:'ネイティブHLS',diagHlsNotLoaded:'hls.js未読込',
+    diagEnabled:'有効',diagNotSupported:'非対応',
+    diagEmeAvail:'利用可能',diagEmeNo:'非対応',
+    diagOnline:'オンライン',diagOffline:'オフライン',diagInUse:'使用中',
+    testServers:'サーバーテスト中…',testAnimeServers:'アニメサーバーテスト中…',
+    titlesLoaded:'件読み込み済',loadingMore:'読み込み中…',endOfCatalog:'カタログの終わり',
+    noContent:'コンテンツなし',
+    popular:'人気',action:'アクション',comedy:'コメディ',scifi:'SF',
+    horror:'ホラー',thriller:'スリラー',romance:'ロマンス',adventure:'アドベンチャー',
+    fantasy:'ファンタジー',family:'ファミリー',crime:'犯罪',animation:'アニメーション',
+    drama:'ドラマ',war:'戦争',mystery:'ミステリー',western:'西部劇',
+    history:'歴史',music:'音楽',airing:'放送中',sliceOfLife:'日常',
+    animeMovies:'映画',sports:'スポーツ',psychological:'心理',mecha:'メカ',
+    military:'軍事',shoujo:'少女',shounen:'少年',
+    allDocs:'すべて',biographies:'伝記',
+    airingNow:'現在放送中',actionBattle:'アクション / バトル',
+    serverBlockedName:'サーバー{name}がブロックされました。',blockedName:'拡張機能が{name}をブロックしました。',
+    serverBlockedTrying:'サーバー{name}ブロック、次を試行…',
+  },
+  'ko':{flag:'🇰🇷',name:'한국어',
+    home:'홈',movies:'영화',series:'시리즈',anime:'애니메',docs:'다큐',live:'실시간',
+    searchPh:'영화, 시리즈, 애니메 검색…',loadingCatalog:'카탈로그 로딩 중…',
+    featured:'추천',watchNow:'지금 보기',moreInfo:'상세 정보',
+    trending:'인기',popularMovies:'인기 영화',featuredSeries:'추천 시리즈',
+    topAnime:'인기 애니메',documentaries:'다큐멘터리',noResults:'결과 없음',
+    searching:'검색 중',noResultsFor:'결과 없음:',resultsFor:'검색 결과:',
+    movie:'영화',serie:'시리즈',
+    season:'시즌',episode:'에피소드',search:'검색',of:'/',eps:'화',seasons:'시즌',
+    watchOnline:'온라인 시청',noServer:'사용 가능한 서버가 없습니다.',
+    allFailed:'모든 서버가 실패했습니다.',tryAgainLater:'잠시 후 다시 시도하세요.',
+    disableAdblock:'AdBlock/uBlock을 비활성화하거나 시크릿 모드를 사용하세요.',
+    openNewTab:'새 탭에서 열기',tryNextServer:'다음 서버',tryNext:'다음',
+    playingVia:'재생 중:',auto:'자동',serverBlocked:'브라우저가 서버를 차단했습니다.',
+    blockedBy:'브라우저 확장 프로그램이 플레이어를 차단했습니다.',
+    noAnimeServer:'애니메 서버를 사용할 수 없습니다.',tryOtherEp:'다시 시도하거나 다른 에피소드를 선택하세요.',
+    noDesc:'설명 없음.',loadError:'로딩 오류. 다시 시도하세요.',
+    watchAt:'ID 없음 — 직접 시청:',
+    liveChannels:'실시간 채널 — 무료 IPTV',filterChannels:'채널 검색…',
+    loadingChannels:'채널 로딩 중…',noChannel:'채널을 찾을 수 없습니다.',
+    loadingCh:'로딩 중',channelError:'이 채널을 재생할 수 없습니다.',
+    channelErrorSub:'스트림이 오프라인이거나 브라우저에 의해 차단되었습니다 (CORS).',
+    all:'전체',
+    settings:'설정',settingsDesc:'StreamFlix는 <strong>무료 공개 API</strong>를 사용합니다.',
+    tmdbLabel:'TMDB 키 (선택사항)',tmdbPh:'TMDB v3 키 (선택사항)…',
+    cancel:'취소',save:'저장',language:'언어',
+    diag:'서버 진단',diagSub:'API 및 스트리밍 서버 연결 테스트 중…',
+    diagTestAgain:'재테스트',diagTesting:'테스트 중…',diagWait:'대기 중…',
+    diagAllOk:'모두 정상!',diagServicesOnline:'서비스 온라인.',
+    diagPartial:'실패',diagWarnings:'경고',diagUseFallback:'✅ 서버를 사용하세요.',
+    diagFailed:'서비스 실패. 연결을 확인하세요.',
+    diagServerResp:'서버 응답 (no-cors)',diagTimeout:'타임아웃',
+    diagItemsReceived:'항목 수신',diagChannelsFound:'채널 발견',
+    diagSupported:'지원',diagNativeHls:'네이티브 HLS',diagHlsNotLoaded:'hls.js 미로드',
+    diagEnabled:'활성',diagNotSupported:'미지원',
+    diagEmeAvail:'사용 가능',diagEmeNo:'미지원',
+    diagOnline:'온라인',diagOffline:'오프라인',diagInUse:'사용 중',
+    testServers:'서버 테스트 중…',testAnimeServers:'애니메 서버 테스트 중…',
+    titlesLoaded:'개 로드됨',loadingMore:'더 불러오는 중…',endOfCatalog:'카탈로그 끝',
+    noContent:'콘텐츠 없음',
+    popular:'인기',action:'액션',comedy:'코미디',scifi:'SF',
+    horror:'공포',thriller:'스릴러',romance:'로맨스',adventure:'모험',
+    fantasy:'판타지',family:'가족',crime:'범죄',animation:'애니메이션',
+    drama:'드라마',war:'전쟁',mystery:'미스터리',western:'서부극',
+    history:'역사',music:'음악',airing:'방영 중',sliceOfLife:'일상',
+    animeMovies:'영화',sports:'스포츠',psychological:'심리',mecha:'메카',
+    military:'군사',shoujo:'소녀',shounen:'소년',
+    allDocs:'전체',biographies:'전기',
+    airingNow:'현재 방영 중',actionBattle:'액션 / 배틀',
+    serverBlockedName:'서버 {name} 차단됨.',blockedName:'확장이 {name}을 차단함.',
+    serverBlockedTrying:'서버 {name} 차단, 다음 시도…',
+  },
+  'zh':{flag:'🇨🇳',name:'中文',
+    home:'首页',movies:'电影',series:'剧集',anime:'动漫',docs:'纪录片',live:'直播',
+    searchPh:'搜索电影、剧集、动漫…',loadingCatalog:'加载目录中…',
+    featured:'精选推荐',watchNow:'立即观看',moreInfo:'更多信息',
+    trending:'热门',popularMovies:'热门电影',featuredSeries:'精选剧集',
+    topAnime:'热门动漫',documentaries:'纪录片',noResults:'未找到内容',
+    searching:'搜索中',noResultsFor:'无结果：',resultsFor:'搜索结果：',
+    movie:'电影',serie:'剧集',
+    season:'季',episode:'集',search:'搜索',of:'/',eps:'集',seasons:'季',
+    watchOnline:'在线观看',noServer:'暂无可用服务器。',
+    allFailed:'所有服务器均失败。',tryAgainLater:'请稍后再试。',
+    disableAdblock:'请禁用 AdBlock/uBlock 或使用无痕模式。',
+    openNewTab:'在新标签页打开',tryNextServer:'下一个服务器',tryNext:'下一个',
+    playingVia:'正在播放：',auto:'自动',serverBlocked:'浏览器已阻止服务器。',
+    blockedBy:'浏览器扩展阻止了播放器。',
+    noAnimeServer:'暂无动漫服务器可用。',tryOtherEp:'请重试或选择其他集数。',
+    noDesc:'暂无描述。',loadError:'加载出错。请重试。',
+    watchAt:'ID不可用 — 直接观看：',
+    liveChannels:'直播频道 — 免费 IPTV',filterChannels:'搜索频道…',
+    loadingChannels:'加载频道中…',noChannel:'未找到频道。',
+    loadingCh:'加载中',channelError:'无法播放此频道。',
+    channelErrorSub:'视频流可能已离线或被浏览器拦截 (CORS)。',
+    all:'全部',
+    settings:'设置',settingsDesc:'StreamFlix 使用<strong>免费公共 API</strong>。',
+    tmdbLabel:'TMDB 密钥（可选）',tmdbPh:'TMDB v3 密钥（可选）…',
+    cancel:'取消',save:'保存',language:'语言',
+    diag:'服务器诊断',diagSub:'正在测试 API 和流媒体服务器连接…',
+    diagTestAgain:'重新测试',diagTesting:'测试中…',diagWait:'等待中…',
+    diagAllOk:'一切正常！',diagServicesOnline:'服务在线。',
+    diagPartial:'失败',diagWarnings:'警告',diagUseFallback:'使用 ✅ 服务器。',
+    diagFailed:'服务失败。请检查网络连接。',
+    diagServerResp:'服务器已响应 (no-cors)',diagTimeout:'超时',
+    diagItemsReceived:'项已接收',diagChannelsFound:'频道已发现',
+    diagSupported:'已支持',diagNativeHls:'原生 HLS',diagHlsNotLoaded:'hls.js 未加载',
+    diagEnabled:'已启用',diagNotSupported:'不支持',
+    diagEmeAvail:'可用',diagEmeNo:'不支持',
+    diagOnline:'在线',diagOffline:'离线',diagInUse:'使用中',
+    testServers:'测试可用服务器…',testAnimeServers:'测试动漫服务器…',
+    titlesLoaded:'个已加载',loadingMore:'加载更多…',endOfCatalog:'目录结束',
+    noContent:'未找到内容',
+    popular:'热门',action:'动作',comedy:'喜剧',scifi:'科幻',
+    horror:'恐怖',thriller:'惊悚',romance:'爱情',adventure:'冒险',
+    fantasy:'奇幻',family:'家庭',crime:'犯罪',animation:'动画',
+    drama:'剧情',war:'战争',mystery:'悬疑',western:'西部片',
+    history:'历史',music:'音乐',airing:'播出中',sliceOfLife:'日常',
+    animeMovies:'电影',sports:'运动',psychological:'心理',mecha:'机甲',
+    military:'军事',shoujo:'少女',shounen:'少年',
+    allDocs:'全部',biographies:'传记',
+    airingNow:'正在播出',actionBattle:'动作 / 战斗',
+    serverBlockedName:'服务器 {name} 已被阻止。',blockedName:'扩展已阻止 {name}。',
+    serverBlockedTrying:'服务器 {name} 被阻止，尝试下一个…',
+  },
+  'ru':{flag:'🇷🇺',name:'Русский',
+    home:'Главная',movies:'Фильмы',series:'Сериалы',anime:'Аниме',docs:'Документалки',live:'ТВ',
+    searchPh:'Поиск фильмов, сериалов, аниме…',loadingCatalog:'Загрузка каталога…',
+    featured:'Рекомендуемое',watchNow:'Смотреть',moreInfo:'Подробнее',
+    trending:'В тренде',popularMovies:'Популярные фильмы',featuredSeries:'Лучшие сериалы',
+    topAnime:'Топ аниме',documentaries:'Документальные',noResults:'Ничего не найдено',
+    searching:'Поиск',noResultsFor:'Нет результатов для',resultsFor:'Результаты для',
+    movie:'Фильм',serie:'Сериал',
+    season:'Сезон',episode:'Серия',search:'Поиск',of:'из',eps:'серий',seasons:'сезонов',
+    watchOnline:'Смотреть Онлайн',noServer:'Нет доступных серверов.',
+    allFailed:'Все серверы не отвечают.',tryAgainLater:'Попробуйте позже.',
+    disableAdblock:'Отключите AdBlock/uBlock или используйте инкогнито.',
+    openNewTab:'Открыть в новой вкладке',tryNextServer:'Следующий сервер',tryNext:'Далее',
+    playingVia:'Воспроизведение через',auto:'АВТО',serverBlocked:'Сервер заблокирован браузером.',
+    blockedBy:'Расширение браузера заблокировало плеер.',
+    noAnimeServer:'Нет доступных аниме-серверов.',tryOtherEp:'Попробуйте снова или другую серию.',
+    noDesc:'Нет описания.',loadError:'Ошибка загрузки. Попробуйте снова.',
+    watchAt:'ID недоступен — смотрите на:',
+    liveChannels:'ТВ каналы — Бесплатное IPTV',filterChannels:'Фильтр каналов…',
+    loadingChannels:'Загрузка каналов…',noChannel:'Каналы не найдены.',
+    loadingCh:'Загрузка',channelError:'Не удалось воспроизвести канал.',
+    channelErrorSub:'Стрим оффлайн или заблокирован браузером (CORS).',
+    all:'Все',
+    settings:'Настройки',settingsDesc:'StreamFlix использует <strong>бесплатные публичные API</strong>.',
+    tmdbLabel:'Ключ TMDB (необязательно)',tmdbPh:'Ключ TMDB v3 (необязательно)…',
+    cancel:'Отмена',save:'Сохранить',language:'Язык',
+    diag:'Диагностика серверов',diagSub:'Тестирование подключения к API и серверам стриминга…',
+    diagTestAgain:'Повторить',diagTesting:'Тест…',diagWait:'Ожидание…',
+    diagAllOk:'Всё работает!',diagServicesOnline:'сервисов онлайн.',
+    diagPartial:'с ошибкой',diagWarnings:'предупреждений',diagUseFallback:'используйте серверы ✅.',
+    diagFailed:'сервисов не отвечают. Проверьте подключение.',
+    diagServerResp:'Сервер ответил (no-cors)',diagTimeout:'Таймаут',
+    diagItemsReceived:'элементов получено',diagChannelsFound:'каналов найдено',
+    diagSupported:'Поддерживается',diagNativeHls:'Нативный HLS',diagHlsNotLoaded:'hls.js не загружен',
+    diagEnabled:'Включено',diagNotSupported:'Не поддерживается',
+    diagEmeAvail:'Доступен',diagEmeNo:'Не поддерживается',
+    diagOnline:'Онлайн',diagOffline:'Оффлайн',diagInUse:'Используется',
+    testServers:'Тестирование серверов…',testAnimeServers:'Тестирование серверов аниме…',
+    titlesLoaded:'загружено',loadingMore:'Загрузка…',endOfCatalog:'конец каталога',
+    noContent:'Контент не найден',
+    popular:'Популярные',action:'Экшн',comedy:'Комедия',scifi:'Фантастика',
+    horror:'Ужасы',thriller:'Триллер',romance:'Романтика',adventure:'Приключения',
+    fantasy:'Фэнтези',family:'Семейный',crime:'Криминал',animation:'Анимация',
+    drama:'Драма',war:'Военный',mystery:'Детектив',western:'Вестерн',
+    history:'История',music:'Музыка',airing:'В эфире',sliceOfLife:'Повседневность',
+    animeMovies:'Фильмы',sports:'Спорт',psychological:'Психология',mecha:'Меха',
+    military:'Военный',shoujo:'Сёдзё',shounen:'Сёнэн',
+    allDocs:'Все',biographies:'Биографии',
+    airingNow:'Сейчас в эфире',actionBattle:'Экшн / Битва',
+    serverBlockedName:'Сервер {name} заблокирован.',blockedName:'Расширение заблокировало {name}.',
+    serverBlockedTrying:'Сервер {name} заблокирован, пробую следующий…',
+  },
+};
+
+// Detectar idioma automaticamente
+var currentLang = 'pt';
+(function detectLang() {
+  try { var saved = localStorage.getItem('sf_lang'); if (saved && LANGS[saved]) { currentLang = saved; return; } } catch(e){}
+  var nav = (navigator.language || navigator.userLanguage || 'pt').toLowerCase();
+  var code = nav.split('-')[0];
+  if (LANGS[code]) currentLang = code;
+  else if (nav.startsWith('pt')) currentLang = 'pt';
+  else if (nav.startsWith('en')) currentLang = 'en';
+  else if (nav.startsWith('es')) currentLang = 'es';
+  else if (nav.startsWith('fr')) currentLang = 'fr';
+  else if (nav.startsWith('de')) currentLang = 'de';
+  else if (nav.startsWith('it')) currentLang = 'it';
+  else if (nav.startsWith('ja')) currentLang = 'ja';
+  else if (nav.startsWith('ko')) currentLang = 'ko';
+  else if (nav.startsWith('zh')) currentLang = 'zh';
+  else if (nav.startsWith('ru')) currentLang = 'ru';
+  else currentLang = 'en';
+})();
+
+function t(key) { return (LANGS[currentLang] && LANGS[currentLang][key]) || (LANGS['en'] && LANGS['en'][key]) || key; }
+
+function setLang(code) {
+  if (!LANGS[code]) return;
+  currentLang = code;
+  try { localStorage.setItem('sf_lang', code); } catch(e){}
+  applyLangUI();
+  renderNavs();
+  if (catalog) renderAba(abaAtiva);
+}
+
+function applyLangUI() {
+  document.getElementById('searchInput').placeholder = t('searchPh');
+  document.getElementById('btn-diag').title = t('diag');
+  document.getElementById('btn-lang').title = t('language');
+  var loadMsg = document.getElementById('loading-msg');
+  if (loadMsg) loadMsg.textContent = t('loadingCatalog');
+  var srvTitle = document.getElementById('servers-title');
+  if (srvTitle) srvTitle.textContent = '▶ ' + t('watchOnline');
+  // Update settings modal
+  var sBox = document.querySelector('.settings-box');
+  if (sBox) {
+    sBox.querySelector('h3').innerHTML = '⚙ ' + t('settings');
+    sBox.querySelector('.sub').innerHTML = t('settingsDesc');
+    sBox.querySelector('label').textContent = t('tmdbLabel');
+    document.getElementById('settings-tmdb').placeholder = t('tmdbPh');
+    document.getElementById('settings-cancelar').textContent = t('cancel');
+    document.getElementById('settings-salvar').textContent = t('save');
+  }
+  // Update diag
+  var diagT = document.querySelector('.diag-title');
+  if (diagT) diagT.textContent = '🧪 ' + t('diag');
+  var diagS = document.querySelector('.diag-sub');
+  if (diagS) diagS.textContent = t('diagSub');
+  // Language selector
+  renderLangSelector();
+}
 
 // ═══════════════════════════════════════════════════════════
 // UTILITÁRIOS
@@ -629,26 +1225,61 @@ async function carregarCatalogo() {
 // ABAS / NAV
 // ═══════════════════════════════════════════════════════════
 var TABS = [
-  { id: 'home',   label: '🏠 Início' },
-  { id: 'movies', label: '🎬 Filmes' },
-  { id: 'series', label: '📺 Séries' },
-  { id: 'anime',  label: '⛩ Anime'  },
-  { id: 'docs',   label: '📖 Docs'   },
-  { id: 'live',   label: '📡 Ao Vivo'},
+  { id: 'home',   icon: '🏠', key: 'home' },
+  { id: 'movies', icon: '🎬', key: 'movies' },
+  { id: 'series', icon: '📺', key: 'series' },
+  { id: 'anime',  icon: '⛩',  key: 'anime' },
+  { id: 'docs',   icon: '📖', key: 'docs' },
+  { id: 'live',   icon: '📡', key: 'live' },
 ];
 function renderNavs() {
   var nav = document.getElementById('nav-tabs');
   var mob = document.getElementById('mobile-nav');
-  nav.innerHTML = TABS.map(function(t) {
-    return '<button class="' + (abaAtiva === t.id ? 'ativo' : '') + '" onclick="trocarAba(\'' + t.id + '\')">' + t.label + '</button>';
+  nav.innerHTML = TABS.map(function(tb) {
+    var lbl = tb.icon + ' ' + t(tb.key);
+    return '<button class="' + (abaAtiva === tb.id ? 'ativo' : '') + '" onclick="trocarAba(\'' + tb.id + '\')">' + lbl + '</button>';
   }).join('');
-  mob.innerHTML = '<div class="inner">' + TABS.map(function(t) {
-    return '<button class="' + (abaAtiva === t.id ? 'ativo' : '') + '" onclick="trocarAba(\'' + t.id + '\')">'+
-      '<span class="ico">' + t.label.split(' ')[0] + '</span>'+
-      '<span style="font-size:9px">' + t.label.split(' ').slice(1).join(' ') + '</span>'+
+  mob.innerHTML = '<div class="inner">' + TABS.map(function(tb) {
+    return '<button class="' + (abaAtiva === tb.id ? 'ativo' : '') + '" onclick="trocarAba(\'' + tb.id + '\')">'+
+      '<span class="ico">' + tb.icon + '</span>'+
+      '<span style="font-size:9px">' + t(tb.key) + '</span>'+
     '</button>';
   }).join('') + '</div>';
 }
+
+function renderLangSelector() {
+  var drop = document.getElementById('lang-drop');
+  if (!drop) return;
+  var html = '';
+  Object.keys(LANGS).forEach(function(code) {
+    var L = LANGS[code];
+    html += '<button class="lang-opt' + (currentLang === code ? ' ativo' : '') + '" onclick="setLang(\'' + code + '\');closeLangDrop()">' +
+      '<span class="lflag">' + L.flag + '</span>' +
+      '<span>' + L.name + '</span>' +
+      '<span class="lcheck">✓</span>' +
+    '</button>';
+  });
+  drop.innerHTML = html;
+}
+
+function closeLangDrop() {
+  document.getElementById('lang-drop').classList.remove('vis');
+}
+
+document.getElementById('btn-lang').onclick = function(e) {
+  e.stopPropagation();
+  var drop = document.getElementById('lang-drop');
+  var btn = document.getElementById('btn-lang');
+  var rect = btn.getBoundingClientRect();
+  drop.style.top = (rect.bottom + 6) + 'px';
+  drop.style.right = (window.innerWidth - rect.right) + 'px';
+  drop.classList.toggle('vis');
+  renderLangSelector();
+};
+document.addEventListener('click', function(e) {
+  var drop = document.getElementById('lang-drop');
+  if (drop && !drop.contains(e.target) && e.target.id !== 'btn-lang') drop.classList.remove('vis');
+});
 function trocarAba(aba) {
   abaAtiva = aba;
   document.getElementById('searchInput').value = '';
@@ -675,14 +1306,14 @@ function renderHero() {
   var title   = h.title || h.name || '';
   var bg      = h.backdrop_url || h.poster_url || '';
   var year    = (h.release_date || h.first_air_date || '').slice(0, 4);
-  var typeMap = { movie: 'Filme', series: 'Série', anime: 'Anime' };
+  var typeMap = { movie: t('movie'), series: t('serie'), anime: 'Anime' };
   var typeEmoji = h._type === 'anime' ? '⛩' : h._type === 'series' ? '📺' : '🎬';
-  var typeLbl = typeMap[h._type] || 'Filme';
+  var typeLbl = typeMap[h._type] || t('movie');
   return '<div class="hero">' +
     '<div class="hero-bg" style="background-image:url(\'' + bg + '\')"></div>' +
     '<div class="hero-overlay"></div>' +
     '<div class="hero-content">' +
-      '<div class="hero-tag">' + typeEmoji + ' ' + typeLbl + ' em Destaque</div>' +
+      '<div class="hero-tag">' + typeEmoji + ' ' + typeLbl + ' ' + t('featured') + '</div>' +
       '<div class="hero-title">' + esc(title) + '</div>' +
       '<div class="hero-info">' +
         '<span class="rating">★ ' + (h.vote_average || 0).toFixed(1) + '</span>' +
@@ -691,8 +1322,8 @@ function renderHero() {
       '</div>' +
       (h.overview ? '<div class="hero-desc">' + esc(h.overview) + '</div>' : '') +
       '<div class="hero-btns">' +
-        '<button class="btn-play" onclick="abrirDetalhe(\'' + esc(h.id) + '\',\'' + h._type + '\')">▶ Assistir Agora</button>' +
-        '<button class="btn-info" onclick="abrirDetalhe(\'' + esc(h.id) + '\',\'' + h._type + '\')">ℹ Mais Informações</button>' +
+        '<button class="btn-play" onclick="abrirDetalhe(\'' + esc(h.id) + '\',\'' + h._type + '\')">▶ ' + t('watchNow') + '</button>' +
+        '<button class="btn-info" onclick="abrirDetalhe(\'' + esc(h.id) + '\',\'' + h._type + '\')">ℹ ' + t('moreInfo') + '</button>' +
       '</div>' +
     '</div>' +
   '</div>';
@@ -705,7 +1336,7 @@ function renderRow(title, items) {
   '</div>';
 }
 function renderCatGrid(title, items) {
-  if (!items || !items.length) return '<div class="empty-msg"><div class="icon">🎬</div><h3>Nada encontrado</h3></div>';
+  if (!items || !items.length) return '<div class="empty-msg"><div class="icon">🎬</div><h3>' + t('noResults') + '</h3></div>';
   return '<div class="row" style="padding-top:16px">' +
     '<div class="row-head"><div class="row-title"><span class="dot"></span> ' + title + '</div></div>' +
     '<div class="cat-grid">' + items.map(renderCard).join('') + '</div>' +
@@ -717,7 +1348,7 @@ function renderCard(item) {
   var poster = item.poster_url || '';
   var type   = item._type || 'movie';
   var rating = (item.vote_average || 0).toFixed(1);
-  var typeLabel = type === 'anime' ? 'Anime' : type === 'series' ? 'Série' : 'Filme';
+  var typeLabel = type === 'anime' ? 'Anime' : type === 'series' ? t('serie') : t('movie');
   var emoji = type === 'anime' ? '⛩' : type === 'series' ? '📺' : '🎬';
   var imgHtml = poster
     ? '<img class="card-img" src="' + poster + '" alt="' + esc(title) + '" loading="lazy" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'flex\'">' +
@@ -734,20 +1365,20 @@ function renderHome() {
   renderNavs();
   document.getElementById('main-content').innerHTML =
     renderHero() +
-    renderRow('🔥 Em Alta',              catalog.trending) +
-    renderRow('🎬 Filmes Populares',     catalog.movies) +
-    renderRow('📺 Séries em Destaque',   catalog.series) +
-    renderRow('⛩ Anime Top',            catalog.anime) +
-    renderRow('💥 Ação',                catalog.action) +
-    renderRow('😂 Comédia',             catalog.comedy) +
-    renderRow('🔬 Ficção Científica',   catalog.scifi) +
-    renderRow('👻 Terror',              catalog.horror) +
-    renderRow('🕵 Crime',              catalog.crime) +
-    renderRow('🌹 Romance',            catalog.romance) +
-    renderRow('🏔 Aventura',           catalog.adventure) +
-    renderRow('🔮 Fantasia',           catalog.fantasy) +
-    renderRow('👨‍👩‍👧 Família',            catalog.family) +
-    renderRow('📖 Documentários',       catalog.docs);
+    renderRow('🔥 ' + t('trending'),          catalog.trending) +
+    renderRow('🎬 ' + t('popularMovies'),     catalog.movies) +
+    renderRow('📺 ' + t('featuredSeries'),    catalog.series) +
+    renderRow('⛩ ' + t('topAnime'),           catalog.anime) +
+    renderRow('💥 ' + t('action'),            catalog.action) +
+    renderRow('😂 ' + t('comedy'),            catalog.comedy) +
+    renderRow('🔬 ' + t('scifi'),             catalog.scifi) +
+    renderRow('👻 ' + t('horror'),            catalog.horror) +
+    renderRow('🕵 ' + t('crime'),             catalog.crime) +
+    renderRow('🌹 ' + t('romance'),           catalog.romance) +
+    renderRow('🏔 ' + t('adventure'),         catalog.adventure) +
+    renderRow('🔮 ' + t('fantasy'),           catalog.fantasy) +
+    renderRow('👨‍👩‍👧 ' + t('family'),            catalog.family) +
+    renderRow('📖 ' + t('documentaries'),     catalog.docs);
   teardownInfinite();
 }
 
@@ -766,75 +1397,75 @@ var _inf = {
   seenIds: {}
 };
 
-var MOVIE_GENRES = [
-  { id: 'top',        label: '🔥 Populares' },
-  { id: 'Action',     label: '💥 Ação' },
-  { id: 'Comedy',     label: '😂 Comédia' },
-  { id: 'Sci-Fi',     label: '🔬 Ficção Científica' },
-  { id: 'Horror',     label: '👻 Terror' },
-  { id: 'Thriller',   label: '🕵 Thriller' },
-  { id: 'Romance',    label: '🌹 Romance' },
-  { id: 'Adventure',  label: '🏔 Aventura' },
-  { id: 'Fantasy',    label: '🔮 Fantasia' },
-  { id: 'Family',     label: '👨‍👩‍👧 Família' },
-  { id: 'Crime',      label: '🕵 Crime' },
-  { id: 'Animation',  label: '🎨 Animação' },
-  { id: 'Drama',      label: '🎭 Drama' },
-  { id: 'War',        label: '⚔ Guerra' },
-  { id: 'Mystery',    label: '🔍 Mistério' },
-  { id: 'Western',    label: '🤠 Western' },
-  { id: 'History',    label: '📜 História' },
-  { id: 'Music',      label: '🎵 Musical' },
-];
+function getMovieGenres() { return [
+  { id: 'top',        label: '🔥 ' + t('popular') },
+  { id: 'Action',     label: '💥 ' + t('action') },
+  { id: 'Comedy',     label: '😂 ' + t('comedy') },
+  { id: 'Sci-Fi',     label: '🔬 ' + t('scifi') },
+  { id: 'Horror',     label: '👻 ' + t('horror') },
+  { id: 'Thriller',   label: '🕵 ' + t('thriller') },
+  { id: 'Romance',    label: '🌹 ' + t('romance') },
+  { id: 'Adventure',  label: '🏔 ' + t('adventure') },
+  { id: 'Fantasy',    label: '🔮 ' + t('fantasy') },
+  { id: 'Family',     label: '👨‍👩‍👧 ' + t('family') },
+  { id: 'Crime',      label: '🕵 ' + t('crime') },
+  { id: 'Animation',  label: '🎨 ' + t('animation') },
+  { id: 'Drama',      label: '🎭 ' + t('drama') },
+  { id: 'War',        label: '⚔ ' + t('war') },
+  { id: 'Mystery',    label: '🔍 ' + t('mystery') },
+  { id: 'Western',    label: '🤠 ' + t('western') },
+  { id: 'History',    label: '📜 ' + t('history') },
+  { id: 'Music',      label: '🎵 ' + t('music') },
+]; }
 
-var SERIES_GENRES = [
-  { id: 'top',        label: '🔥 Populares' },
-  { id: 'Drama',      label: '🎭 Drama' },
-  { id: 'Crime',      label: '🕵 Crime' },
-  { id: 'Comedy',     label: '😂 Comédia' },
-  { id: 'Thriller',   label: '🎭 Thriller' },
-  { id: 'Family',     label: '👨‍👩‍👧 Família' },
-  { id: 'Sci-Fi',     label: '🔬 Ficção Científica' },
-  { id: 'Action',     label: '💥 Ação' },
-  { id: 'Romance',    label: '🌹 Romance' },
-  { id: 'Fantasy',    label: '🔮 Fantasia' },
-  { id: 'Mystery',    label: '🔍 Mistério' },
-  { id: 'Horror',     label: '👻 Terror' },
-  { id: 'Animation',  label: '🎨 Animação' },
-  { id: 'Adventure',  label: '🏔 Aventura' },
-  { id: 'History',    label: '📜 História' },
-];
+function getSeriesGenres() { return [
+  { id: 'top',        label: '🔥 ' + t('popular') },
+  { id: 'Drama',      label: '🎭 ' + t('drama') },
+  { id: 'Crime',      label: '🕵 ' + t('crime') },
+  { id: 'Comedy',     label: '😂 ' + t('comedy') },
+  { id: 'Thriller',   label: '🎭 ' + t('thriller') },
+  { id: 'Family',     label: '👨‍👩‍👧 ' + t('family') },
+  { id: 'Sci-Fi',     label: '🔬 ' + t('scifi') },
+  { id: 'Action',     label: '💥 ' + t('action') },
+  { id: 'Romance',    label: '🌹 ' + t('romance') },
+  { id: 'Fantasy',    label: '🔮 ' + t('fantasy') },
+  { id: 'Mystery',    label: '🔍 ' + t('mystery') },
+  { id: 'Horror',     label: '👻 ' + t('horror') },
+  { id: 'Animation',  label: '🎨 ' + t('animation') },
+  { id: 'Adventure',  label: '🏔 ' + t('adventure') },
+  { id: 'History',    label: '📜 ' + t('history') },
+]; }
 
-var ANIME_GENRES = [
-  { id: 'top',     label: '🔥 Populares', filter: 'bypopularity' },
-  { id: 'airing',  label: '📡 Em Exibição', filter: 'airing' },
-  { id: '1',       label: '💥 Ação',     genres: '1' },
-  { id: '36',      label: '☕ Slice of Life', genres: '36' },
-  { id: '2',       label: '🏔 Aventura', genres: '2' },
-  { id: '4',       label: '😂 Comédia',  genres: '4' },
-  { id: '8',       label: '🎭 Drama',    genres: '8' },
-  { id: '10',      label: '🔮 Fantasia', genres: '10' },
-  { id: '14',      label: '👻 Terror',   genres: '14' },
-  { id: '22',      label: '🌹 Romance',  genres: '22' },
-  { id: '24',      label: '🔬 Ficção Científica', genres: '24' },
-  { id: 'movie',   label: '🎌 Filmes',   type: 'movie' },
-  { id: '7',       label: '🔍 Mistério', genres: '7' },
-  { id: '30',      label: '⚔ Esportes',  genres: '30' },
-  { id: '40',      label: '🧠 Psicológico', genres: '40' },
-  { id: '18',      label: '🤖 Mecha',    genres: '18' },
-  { id: '38',      label: '🔫 Militar',   genres: '38' },
-  { id: '25',      label: '🤠 Shoujo',    genres: '25' },
-  { id: '27',      label: '👦 Shounen',   genres: '27' },
-];
+function getAnimeGenres() { return [
+  { id: 'top',     label: '🔥 ' + t('popular'), filter: 'bypopularity' },
+  { id: 'airing',  label: '📡 ' + t('airing'), filter: 'airing' },
+  { id: '1',       label: '💥 ' + t('action'),     genres: '1' },
+  { id: '36',      label: '☕ ' + t('sliceOfLife'), genres: '36' },
+  { id: '2',       label: '🏔 ' + t('adventure'), genres: '2' },
+  { id: '4',       label: '😂 ' + t('comedy'),  genres: '4' },
+  { id: '8',       label: '🎭 ' + t('drama'),    genres: '8' },
+  { id: '10',      label: '🔮 ' + t('fantasy'), genres: '10' },
+  { id: '14',      label: '👻 ' + t('horror'),   genres: '14' },
+  { id: '22',      label: '🌹 ' + t('romance'),  genres: '22' },
+  { id: '24',      label: '🔬 ' + t('scifi'), genres: '24' },
+  { id: 'movie',   label: '🎌 ' + t('animeMovies'),   type: 'movie' },
+  { id: '7',       label: '🔍 ' + t('mystery'), genres: '7' },
+  { id: '30',      label: '⚔ ' + t('sports'),  genres: '30' },
+  { id: '40',      label: '🧠 ' + t('psychological'), genres: '40' },
+  { id: '18',      label: '🤖 ' + t('mecha'),    genres: '18' },
+  { id: '38',      label: '🔫 ' + t('military'),   genres: '38' },
+  { id: '25',      label: '🤠 ' + t('shoujo'),    genres: '25' },
+  { id: '27',      label: '👦 ' + t('shounen'),   genres: '27' },
+]; }
 
-var DOC_GENRES = [
-  { id: 'Documentary', label: '📖 Todos' },
-  { id: 'History',     label: '📜 História' },
-  { id: 'Biography',   label: '👤 Biografias' },
-  { id: 'Music',       label: '🎵 Musical' },
-  { id: 'Sport',       label: '⚽ Esportes' },
-  { id: 'War',         label: '⚔ Guerra' },
-];
+function getDocGenres() { return [
+  { id: 'Documentary', label: '📖 ' + t('allDocs') },
+  { id: 'History',     label: '📜 ' + t('history') },
+  { id: 'Biography',   label: '👤 ' + t('biographies') },
+  { id: 'Music',       label: '🎵 ' + t('music') },
+  { id: 'Sport',       label: '⚽ ' + t('sports') },
+  { id: 'War',         label: '⚔ ' + t('war') },
+]; }
 
 function teardownInfinite() {
   if (_inf.observer) { _inf.observer.disconnect(); _inf.observer = null; }
@@ -852,9 +1483,8 @@ function setupInfinite(tab, genre) {
   _inf.activeGenre = genre;
   renderNavs();
 
-  var genres = tab === 'movies' ? MOVIE_GENRES : tab === 'series' ? SERIES_GENRES : tab === 'anime' ? ANIME_GENRES : DOC_GENRES;
-  var emoji = tab === 'movies' ? '🎬' : tab === 'series' ? '📺' : tab === 'anime' ? '⛩' : '📖';
-  var titulo = tab === 'movies' ? 'Filmes' : tab === 'series' ? 'Séries' : tab === 'anime' ? 'Anime' : 'Documentários';
+  var genres = tab === 'movies' ? getMovieGenres() : tab === 'series' ? getSeriesGenres() : tab === 'anime' ? getAnimeGenres() : getDocGenres();
+  var titulo = tab === 'movies' ? t('movies') : tab === 'series' ? t('series') : tab === 'anime' ? t('anime') : t('documentaries');
 
   var tabsHtml = '<div class="cat-tabs-wrap"><div class="cat-tabs">';
   genres.forEach(function(g) {
@@ -862,13 +1492,10 @@ function setupInfinite(tab, genre) {
   });
   tabsHtml += '</div></div>';
 
-  var activeLabel = '';
-  genres.forEach(function(g){ if (g.id === genre) activeLabel = g.label; });
-
   document.getElementById('main-content').innerHTML =
     tabsHtml +
     '<div class="sec-grid" id="inf-grid">' +
-      '<div class="inf-loading"><div class="spin"></div><p>Carregando ' + titulo + '…</p></div>' +
+      '<div class="inf-loading"><div class="spin"></div><p>' + t('loadingCatalog').replace('catálogo', titulo).replace('catalog', titulo).replace('Katalog', titulo).replace('カタログ', titulo).replace('каталога', titulo) + '</p></div>' +
     '</div>' +
     '<div class="sentinel" id="inf-sentinel"></div>';
 
@@ -981,7 +1608,7 @@ async function fetchCinemetaInfinite(type, genre, skip) {
 
 async function fetchAnimeInfinite(genre, page) {
   var genreObj = null;
-  ANIME_GENRES.forEach(function(g){ if (g.id === genre) genreObj = g; });
+  getAnimeGenres().forEach(function(g){ if (g.id === genre) genreObj = g; });
   if (!genreObj) return [];
 
   var path;
@@ -1007,17 +1634,17 @@ function renderInfGrid() {
   if (!grid) return;
 
   if (!_inf.items.length && !_inf.loading) {
-    grid.innerHTML = '<div class="empty-msg"><div class="icon">🔍</div><h3>Nenhum conteúdo encontrado</h3></div>';
+    grid.innerHTML = '<div class="empty-msg"><div class="icon">🔍</div><h3>' + t('noContent') + '</h3></div>';
     return;
   }
 
-  var html = '<div class="card-count-badge">' + _inf.items.length + ' títulos carregados</div>';
+  var html = '<div class="card-count-badge">' + _inf.items.length + ' ' + t('titlesLoaded') + '</div>';
   html += _inf.items.map(renderCard).join('');
 
   if (_inf.loading) {
-    html += '<div class="inf-loading"><div class="spin spin-sm"></div><p>Carregando mais…</p></div>';
+    html += '<div class="inf-loading"><div class="spin spin-sm"></div><p>' + t('loadingMore') + '</p></div>';
   } else if (_inf.ended) {
-    html += '<div class="fim-lista">— fim do catálogo —</div>';
+    html += '<div class="fim-lista">— ' + t('endOfCatalog') + ' —</div>';
   }
 
   grid.innerHTML = html;
@@ -1045,7 +1672,7 @@ document.getElementById('searchInput').addEventListener('input', function(e) {
 async function buscarTudo(query) {
   teardownInfinite();
   var wrap = document.getElementById('main-content');
-  wrap.innerHTML = '<div class="empty-msg" style="padding-top:60px"><div class="icon">🔍</div><h3>Buscando "' + esc(query) + '"…</h3></div>';
+  wrap.innerHTML = '<div class="empty-msg" style="padding-top:60px"><div class="icon">🔍</div><h3>' + t('searching') + ' "' + esc(query) + '"…</h3></div>';
   var q = encodeURIComponent(query);
   var results = await Promise.all([
     cinemetaFetch('/catalog/movie/top/search=' + q + '.json'),
@@ -1057,11 +1684,11 @@ async function buscarTudo(query) {
   if (results[1] && results[1].metas) results[1].metas.slice(0, 20).forEach(function(m){ all.push(normalizeCinemeta(m, 'series')); });
   if (results[2] && results[2].data)  results[2].data.slice(0, 16).forEach(function(a){ all.push(normalizeJikan(a)); });
   if (!all.length) {
-    wrap.innerHTML = '<div class="empty-msg" style="padding-top:60px"><div class="icon">🔍</div><h3>Nenhum resultado para "' + esc(query) + '"</h3></div>';
+    wrap.innerHTML = '<div class="empty-msg" style="padding-top:60px"><div class="icon">🔍</div><h3>' + t('noResultsFor') + ' "' + esc(query) + '"</h3></div>';
     return;
   }
   wrap.innerHTML = '<div class="row" style="padding-top:16px">' +
-    '<div class="row-head"><div class="row-title"><span class="dot"></span> Resultados para "' + esc(query) + '"</div></div>' +
+    '<div class="row-head"><div class="row-title"><span class="dot"></span> ' + t('resultsFor') + ' "' + esc(query) + '"</div></div>' +
     '<div class="cat-grid">' + all.map(renderCard).join('') + '</div>' +
   '</div>';
 }
@@ -1083,7 +1710,7 @@ async function abrirDetalhe(id, type) {
   var data = await carregarDetalhes(id, type);
   if (!data) {
     document.getElementById('tela-modal').classList.remove('aberta');
-    alert('Erro ao carregar detalhes. Tente novamente.');
+    alert(t('loadError'));
     return;
   }
   itemSelecionado = data;
@@ -1119,26 +1746,26 @@ function preencherModal(item) {
   var metaHtml = '<span class="rating">★ ' + (item.vote_average || 0).toFixed(1) + '</span>';
   if (year) metaHtml += '<span>' + year + '</span>';
   if (item.runtime) metaHtml += '<span class="badge">' + esc(item.runtime) + '</span>';
-  if (item.number_of_seasons && item._type === 'series') metaHtml += '<span class="badge">' + item.number_of_seasons + ' temp.</span>';
+  if (item.number_of_seasons && item._type === 'series') metaHtml += '<span class="badge">' + item.number_of_seasons + ' ' + t('seasons') + '</span>';
   (item.genres || []).forEach(function(g){ metaHtml += '<span class="badge">' + esc(g.name) + '</span>'; });
   document.getElementById('modal-meta').innerHTML = metaHtml;
-  document.getElementById('modal-desc').textContent = item.overview || 'Sem descrição disponível.';
+  document.getElementById('modal-desc').textContent = item.overview || t('noDesc');
 
   if (item._type === 'series') {
     document.getElementById('modal-ep-sel').innerHTML =
       '<div class="ep-sel">' +
-        '<label>Temporada: <input type="number" id="inSeason" value="1" min="1" max="' + (item.number_of_seasons || 30) + '"></label>' +
-        '<label>Episódio: <input type="number" id="inEpisode" value="1" min="1"></label>' +
-        '<button onclick="buscarEpisodio()">🔍 Buscar</button>' +
+        '<label>' + t('season') + ': <input type="number" id="inSeason" value="1" min="1" max="' + (item.number_of_seasons || 30) + '"></label>' +
+        '<label>' + t('episode') + ': <input type="number" id="inEpisode" value="1" min="1"></label>' +
+        '<button onclick="buscarEpisodio()">🔍 ' + t('search') + '</button>' +
       '</div>';
   }
   if (item._type === 'anime') {
     var totalEps = item.number_of_seasons || '';
     document.getElementById('modal-ep-sel').innerHTML =
       '<div class="ep-sel">' +
-        '<label>Episódio: <input type="number" id="inAnimeEp" value="1" min="1"' + (totalEps ? ' max="' + totalEps + '"' : '') + '></label>' +
-        (totalEps ? '<span style="font-size:12px;color:var(--text2)">de ' + totalEps + ' eps</span>' : '') +
-        '<button onclick="buscarAnimeEpisodio()">🔍 Buscar</button>' +
+        '<label>' + t('episode') + ': <input type="number" id="inAnimeEp" value="1" min="1"' + (totalEps ? ' max="' + totalEps + '"' : '') + '></label>' +
+        (totalEps ? '<span style="font-size:12px;color:var(--text2)">' + t('of') + ' ' + totalEps + ' ' + t('eps') + '</span>' : '') +
+        '<button onclick="buscarAnimeEpisodio()">🔍 ' + t('search') + '</button>' +
       '</div>';
   }
 }
@@ -1186,9 +1813,9 @@ function renderSrvBtns(item) {
   if (!grid) return;
   grid.innerHTML = SERVERS.map(function(srv, idx) {
     var st    = _srvStatus[idx] || 'pending';
-    var badge = st === 'ok'      ? '<span class="srv-status ok">✅ Online</span>'
-              : st === 'fail'    ? '<span class="srv-status fail">❌ Offline</span>'
-              : st === 'playing' ? '<span class="srv-status playing">▶ Em uso</span>'
+    var badge = st === 'ok'      ? '<span class="srv-status ok">✅ ' + t('diagOnline') + '</span>'
+              : st === 'fail'    ? '<span class="srv-status fail">❌ ' + t('diagOffline') + '</span>'
+              : st === 'playing' ? '<span class="srv-status playing">▶ ' + t('diagInUse') + '</span>'
               :                    '<span class="srv-status pend">⏳</span>';
     var active = serverAtivo === idx;
     return '<button class="server-btn' + (active ? ' ativo' : '') + '" id="srv-btn-' + idx + '" onclick="playServer(' + idx + ')" ' +
@@ -1207,7 +1834,7 @@ function setEmbedLoading(msg) {
   if (area) area.innerHTML =
     '<div class="auto-status">' +
       '<div class="spin spin-sm"></div>' +
-      '<span id="auto-msg">' + (msg || 'Buscando servidor…') + '</span>' +
+      '<span id="auto-msg">' + (msg || t('testServers')) + '</span>' +
     '</div>';
 }
 
@@ -1221,7 +1848,7 @@ function mostrarServidores(item) {
     ANIME_SERVERS.forEach(function(_, i) { _srvStatus['a' + i] = 'pending'; });
     serverAtivo = -1;
     renderAnimeSrvBtns(item);
-    setEmbedLoading('🔍 Testando servidores de anime…');
+    setEmbedLoading('🔍 ' + t('testAnimeServers'));
     autoPlayAnime(item);
     return;
   }
@@ -1232,7 +1859,7 @@ function mostrarServidores(item) {
     grid.innerHTML = '';
     area.innerHTML =
       '<div class="anime-links">' +
-        '<p style="font-size:13px;color:var(--text2);margin-bottom:2px">ID não disponível — assista diretamente em:</p>' +
+        '<p style="font-size:13px;color:var(--text2);margin-bottom:2px">' + t('watchAt') + '</p>' +
         '<div class="anime-links-grid">' +
           '<a class="anime-link" href="https://gogoanime3.co/search.html?keyword=' + q + '" target="_blank" rel="noopener">🔵 GogoAnime</a>' +
           '<a class="anime-link" href="https://animepahe.ru/?q=' + q + '" target="_blank" rel="noopener">🟣 AnimePahe</a>' +
@@ -1249,7 +1876,7 @@ function mostrarServidores(item) {
   SERVERS.forEach(function(_, i) { _srvStatus[i] = 'pending'; });
   serverAtivo = -1;
   renderSrvBtns(item);
-  setEmbedLoading('🔍 Testando servidores disponíveis…');
+  setEmbedLoading('🔍 ' + t('testServers'));
 
   // Inicia auto-play
   autoPlay(item);
@@ -1280,8 +1907,8 @@ async function autoPlay(item) {
     if (area) area.innerHTML =
       '<div class="embed-fallback" style="display:flex">' +
         '<span style="font-size:28px">📡</span>' +
-        '<p>Nenhum servidor disponível agora.</p>' +
-        '<small>Tente novamente em alguns instantes.</small>' +
+        '<p>' + t('noServer') + '</p>' +
+        '<small>' + t('tryAgainLater') + '</small>' +
       '</div>';
     _autoPlaying = false;
     return;
@@ -1307,8 +1934,8 @@ function playNextAuto(item) {
     if (area) area.innerHTML =
       '<div class="embed-fallback" style="display:flex">' +
         '<span style="font-size:28px">⚠️</span>' +
-        '<p>Todos os servidores falharam.</p>' +
-        '<small>Tente desativar extensões do browser ou use a aba anônima.</small>' +
+        '<p>' + t('allFailed') + '</p>' +
+        '<small>' + t('disableAdblock') + '</small>' +
       '</div>';
     return;
   }
@@ -1334,19 +1961,19 @@ function playServer(idx, isAuto) {
 
   // Monta player com label do servidor
   document.getElementById('embed-area').innerHTML =
-    '<div class="auto-playing-label">▶ Reproduzindo via <strong>' + esc(srv.name) + '</strong>' +
-      (isAuto ? ' <span class="auto-tag">AUTO</span>' : '') +
+    '<div class="auto-playing-label">▶ ' + t('playingVia') + ' <strong>' + esc(srv.name) + '</strong>' +
+      (isAuto ? ' <span class="auto-tag">' + t('auto') + '</span>' : '') +
     '</div>' +
     '<div class="embed-player-wrap" id="embed-wrap">' +
       '<iframe id="embed-iframe" src="' + url + '" allow="autoplay; encrypted-media; fullscreen; picture-in-picture; web-share; clipboard-write; xr-spatial-tracking; payment; microphone; camera; gyroscope; accelerometer" referrerpolicy="no-referrer-when-downgrade"></iframe>' +
     '</div>' +
     '<div class="embed-fallback" id="embed-fallback" style="display:none">' +
       '<span style="font-size:28px">⚠️</span>' +
-      '<p id="fallback-msg">Extensão do browser bloqueou o player.</p>' +
-      '<small>Desative AdBlock/uBlock ou use aba anônima (Ctrl+Shift+N).</small>' +
+      '<p id="fallback-msg">' + t('blockedBy') + '</p>' +
+      '<small>' + t('disableAdblock') + '</small>' +
       '<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:6px">' +
-        '<a class="btn-nova-aba" href="' + url + '" target="_blank" rel="noopener">▶ Abrir em Nova Aba</a>' +
-        (_autoQueue && _autoQueue.length ? '<button class="btn-next-srv" onclick="playNextAuto(itemSelecionado)">⟳ Tentar Próximo Servidor</button>' : '') +
+        '<a class="btn-nova-aba" href="' + url + '" target="_blank" rel="noopener">▶ ' + t('openNewTab') + '</a>' +
+        (_autoQueue && _autoQueue.length ? '<button class="btn-next-srv" onclick="playNextAuto(itemSelecionado)">⟳ ' + t('tryNextServer') + '</button>' : '') +
       '</div>' +
     '</div>';
 
@@ -1388,7 +2015,7 @@ function onPlayerBlocked(idx, item, url, wasAuto) {
   // Se ainda há servidores na fila e foi auto → tenta próximo automaticamente
   if (wasAuto && _autoQueue && _autoQueue.length) {
     var msgEl = document.getElementById('auto-msg');
-    if (msgEl) msgEl.textContent = 'Servidor ' + SERVERS[idx].name + ' bloqueado, tentando próximo…';
+    if (msgEl) msgEl.textContent = t('serverBlockedTrying').replace('{name}', SERVERS[idx].name);
     renderSrvBtns(item);
     setTimeout(function() { playNextAuto(item); }, 800);
     return;
@@ -1401,7 +2028,7 @@ function onPlayerBlocked(idx, item, url, wasAuto) {
   var msg  = document.getElementById('fallback-msg');
   if (wrap) wrap.style.display = 'none';
   if (fall) fall.style.display = 'flex';
-  if (msg)  msg.textContent    = 'Extensão bloqueou ' + SERVERS[idx].name + '.';
+  if (msg)  msg.textContent    = t('blockedName').replace('{name}', SERVERS[idx].name);
 }
 
 function buscarEpisodio() {
@@ -1439,9 +2066,9 @@ function renderAnimeSrvBtns(item) {
   grid.innerHTML = ANIME_SERVERS.map(function(srv, idx) {
     var key = 'a' + idx;
     var st    = _srvStatus[key] || 'pending';
-    var badge = st === 'ok'      ? '<span class="srv-status ok">✅ Online</span>'
-              : st === 'fail'    ? '<span class="srv-status fail">❌ Offline</span>'
-              : st === 'playing' ? '<span class="srv-status playing">▶ Em uso</span>'
+    var badge = st === 'ok'      ? '<span class="srv-status ok">✅ ' + t('diagOnline') + '</span>'
+              : st === 'fail'    ? '<span class="srv-status fail">❌ ' + t('diagOffline') + '</span>'
+              : st === 'playing' ? '<span class="srv-status playing">▶ ' + t('diagInUse') + '</span>'
               :                    '<span class="srv-status pend">⏳</span>';
     var active = serverAtivo === key;
     return '<button class="server-btn' + (active ? ' ativo' : '') + '" id="srv-btn-a' + idx + '" onclick="playAnimeServer(' + idx + ')" ' +
@@ -1476,8 +2103,8 @@ async function autoPlayAnime(item) {
     if (area) area.innerHTML =
       '<div class="embed-fallback" style="display:flex">' +
         '<span style="font-size:28px">📡</span>' +
-        '<p>Nenhum servidor de anime disponível agora.</p>' +
-        '<small>Tente novamente em alguns instantes ou use outro número de episódio.</small>' +
+        '<p>' + t('noAnimeServer') + '</p>' +
+        '<small>' + t('tryOtherEp') + '</small>' +
       '</div>';
     return;
   }
@@ -1500,8 +2127,8 @@ function playNextAnimeAuto(item) {
     if (area) area.innerHTML =
       '<div class="embed-fallback" style="display:flex">' +
         '<span style="font-size:28px">⚠️</span>' +
-        '<p>Todos os servidores de anime falharam.</p>' +
-        '<small>Tente desativar AdBlock ou use aba anônima (Ctrl+Shift+N).</small>' +
+        '<p>' + t('allFailed') + '</p>' +
+        '<small>' + t('disableAdblock') + '</small>' +
       '</div>';
     return;
   }
@@ -1524,19 +2151,19 @@ function playAnimeServer(idx, isAuto) {
   try { localStorage.setItem('sf_last_anime_srv', idx); } catch(e) {}
 
   document.getElementById('embed-area').innerHTML =
-    '<div class="auto-playing-label">▶ Reproduzindo via <strong>' + esc(srv.name) + '</strong>' +
-      (isAuto ? ' <span class="auto-tag">AUTO</span>' : '') +
+    '<div class="auto-playing-label">▶ ' + t('playingVia') + ' <strong>' + esc(srv.name) + '</strong>' +
+      (isAuto ? ' <span class="auto-tag">' + t('auto') + '</span>' : '') +
     '</div>' +
     '<div class="embed-player-wrap" id="embed-wrap">' +
       '<iframe id="embed-iframe" src="' + url + '" allow="autoplay; encrypted-media; fullscreen; picture-in-picture; web-share; clipboard-write; xr-spatial-tracking; payment; microphone; camera; gyroscope; accelerometer" referrerpolicy="no-referrer-when-downgrade"></iframe>' +
     '</div>' +
     '<div class="embed-fallback" id="embed-fallback" style="display:none">' +
       '<span style="font-size:28px">⚠️</span>' +
-      '<p id="fallback-msg">Servidor bloqueado pelo browser.</p>' +
-      '<small>Desative AdBlock/uBlock ou use aba anônima (Ctrl+Shift+N).</small>' +
+      '<p id="fallback-msg">' + t('serverBlocked') + '</p>' +
+      '<small>' + t('disableAdblock') + '</small>' +
       '<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:6px">' +
-        '<a class="btn-nova-aba" href="' + url + '" target="_blank" rel="noopener">▶ Abrir em Nova Aba</a>' +
-        (_autoQueue && _autoQueue.length ? '<button class="btn-next-srv" onclick="playNextAnimeAuto(itemSelecionado)">⟳ Tentar Próximo</button>' : '') +
+        '<a class="btn-nova-aba" href="' + url + '" target="_blank" rel="noopener">▶ ' + t('openNewTab') + '</a>' +
+        (_autoQueue && _autoQueue.length ? '<button class="btn-next-srv" onclick="playNextAnimeAuto(itemSelecionado)">⟳ ' + t('tryNext') + '</button>' : '') +
       '</div>' +
     '</div>';
 
@@ -1582,7 +2209,7 @@ function onAnimePlayerBlocked(idx, item, url, wasAuto) {
   var msg  = document.getElementById('fallback-msg');
   if (wrap) wrap.style.display = 'none';
   if (fall) fall.style.display = 'flex';
-  if (msg)  msg.textContent    = 'Servidor ' + ANIME_SERVERS[idx].name + ' bloqueado.';
+  if (msg)  msg.textContent    = t('serverBlockedName').replace('{name}', ANIME_SERVERS[idx].name);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1598,13 +2225,13 @@ async function renderLive() {
   var wrap = document.getElementById('main-content');
   wrap.innerHTML =
     '<div class="live-header">' +
-      '<div class="row-title"><span class="dot"></span> 📡 Canais Ao Vivo — IPTV Gratuito</div>' +
+      '<div class="row-title"><span class="dot"></span> 📡 ' + t('liveChannels') + '</div>' +
       '<div class="live-filters" id="live-filters"></div>' +
     '</div>' +
     '<div class="live-search-wrap">' +
-      '<input class="live-search" id="live-q" type="text" placeholder="Filtrar canais…" oninput="filtrarLive(this.value)">' +
+      '<input class="live-search" id="live-q" type="text" placeholder="' + t('filterChannels') + '" oninput="filtrarLive(this.value)">' +
     '</div>' +
-    '<div class="live-loading" id="live-loading"><div class="spin"></div><p>Carregando canais…</p></div>' +
+    '<div class="live-loading" id="live-loading"><div class="spin"></div><p>' + t('loadingChannels') + '</p></div>' +
     '<div class="channels-grid" id="channels-grid" style="display:none"></div>';
 
   if (iptvAll.length) { renderChannels(); return; }
@@ -1660,7 +2287,7 @@ function renderChannels() {
   if (!loading || !grid) return;
 
   if (!iptvFiltrado.length) {
-    loading.innerHTML = '<div class="live-empty"><div class="icon" style="font-size:36px">📡</div><p>Nenhum canal encontrado.</p></div>';
+    loading.innerHTML = '<div class="live-empty"><div class="icon" style="font-size:36px">📡</div><p>' + t('noChannel') + '</p></div>';
     return;
   }
   loading.style.display = 'none';
@@ -1669,7 +2296,7 @@ function renderChannels() {
   // Filtros de categoria
   if (filters) {
     var grupos = getGrupos();
-    var btns = '<button class="filter-btn ' + (iptvCategoria === 'todos' ? 'ativo' : '') + '" onclick="setCat(\'todos\')">Todos (' + iptvAll.length + ')</button>';
+    var btns = '<button class="filter-btn ' + (iptvCategoria === 'todos' ? 'ativo' : '') + '" onclick="setCat(\'todos\')">' + t('all') + ' (' + iptvAll.length + ')</button>';
     grupos.forEach(function(g) {
       btns += '<button class="filter-btn ' + (iptvCategoria === g ? 'ativo' : '') + '" onclick="setCat(\'' + g.replace(/'/g, "\\'") + '\')">' + esc(g) + '</button>';
     });
@@ -1732,7 +2359,7 @@ function playChannel(idx) {
   var video   = document.getElementById('iptv-video');
   var overlay = document.getElementById('iptv-overlay');
   overlay.style.display = 'flex';
-  overlay.innerHTML = '<div class="spin"></div><p>Carregando ' + esc(ch.name) + '…</p>';
+  overlay.innerHTML = '<div class="spin"></div><p>' + t('loadingCh') + ' ' + esc(ch.name) + '…</p>';
 
   if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
   video.src = '';
@@ -1770,8 +2397,8 @@ function erroIPTV() {
   overlay.style.display = 'flex';
   overlay.innerHTML =
     '<span style="font-size:36px">⚠️</span>' +
-    '<p>Não foi possível reproduzir este canal.</p>' +
-    '<small>O stream pode estar offline ou bloqueado pelo navegador (CORS).</small>';
+    '<p>' + t('channelError') + '</p>' +
+    '<small>' + t('channelErrorSub') + '</small>';
 }
 
 document.getElementById('iptv-fechar').onclick = function() {
@@ -1816,28 +2443,28 @@ function diagBadgeClass(status) {
   return { ok:'badge-ok', fail:'badge-fail', warn:'badge-warn', loading:'badge-loading' }[status] || 'badge-loading';
 }
 function diagBadgeText(status, ms) {
-  if (status === 'loading') return 'Testando…';
-  if (status === 'ok')   return ms ? '✓ Online (' + ms + 'ms)' : '✓ OK';
-  if (status === 'warn') return '⚠ Parcial';
-  if (status === 'fail') return '✗ Offline';
+  if (status === 'loading') return t('diagTesting');
+  if (status === 'ok')   return ms ? '✓ ' + t('diagOnline') + ' (' + ms + 'ms)' : '✓ OK';
+  if (status === 'warn') return '⚠ ';
+  if (status === 'fail') return '✗ ' + t('diagOffline');
   return '…';
 }
 
 function renderDiagItems(tests) {
   var html = '';
   var lastSection = null;
-  tests.forEach(function(t) {
-    if (t.section && t.section !== lastSection) {
-      html += '<div class="diag-section">' + t.section + '</div>';
-      lastSection = t.section;
+  tests.forEach(function(dt) {
+    if (dt.section && dt.section !== lastSection) {
+      html += '<div class="diag-section">' + dt.section + '</div>';
+      lastSection = dt.section;
     }
-    html += '<div class="diag-item loading" id="diag-row-' + t.id + '">' +
-      '<div class="diag-icon" id="diag-ico-' + t.id + '">⏳</div>' +
+    html += '<div class="diag-item loading" id="diag-row-' + dt.id + '">' +
+      '<div class="diag-icon" id="diag-ico-' + dt.id + '">⏳</div>' +
       '<div class="diag-info">' +
-        '<div class="diag-name">' + esc(t.name) + '</div>' +
-        '<div class="diag-detail" id="diag-det-' + t.id + '">Aguardando…</div>' +
+        '<div class="diag-name">' + esc(dt.name) + '</div>' +
+        '<div class="diag-detail" id="diag-det-' + dt.id + '">' + t('diagWait') + '</div>' +
       '</div>' +
-      '<span class="diag-badge badge-loading" id="diag-badge-' + t.id + '">Testando…</span>' +
+      '<span class="diag-badge badge-loading" id="diag-badge-' + dt.id + '">' + t('diagTesting') + '</span>' +
     '</div>';
   });
   return html;
@@ -1903,10 +2530,10 @@ async function testIPTV(url) {
 }
 
 function testLocal(id) {
-  if (id === 'hlsjs')  return { ok: typeof Hls !== 'undefined' && Hls.isSupported(), detail: typeof Hls !== 'undefined' ? (Hls.isSupported() ? 'Suportado pelo browser' : 'HLS nativo disponível') : 'hls.js não carregado' };
-  if (id === 'pip')    return { ok: !!document.pictureInPictureEnabled, detail: document.pictureInPictureEnabled ? 'Habilitado' : 'Não suportado ou bloqueado por extensão' };
-  if (id === 'medias') return { ok: !!(window.MediaKeys || window.WebKitMediaKeys || navigator.requestMediaKeySystemAccess), detail: navigator.requestMediaKeySystemAccess ? 'requestMediaKeySystemAccess disponível' : 'Não suportado — iframes de EME podem falhar' };
-  return { ok: false, detail: 'Desconhecido' };
+  if (id === 'hlsjs')  return { ok: typeof Hls !== 'undefined' && Hls.isSupported(), detail: typeof Hls !== 'undefined' ? (Hls.isSupported() ? t('diagSupported') : t('diagNativeHls')) : t('diagHlsNotLoaded') };
+  if (id === 'pip')    return { ok: !!document.pictureInPictureEnabled, detail: document.pictureInPictureEnabled ? t('diagEnabled') : t('diagNotSupported') };
+  if (id === 'medias') return { ok: !!(window.MediaKeys || window.WebKitMediaKeys || navigator.requestMediaKeySystemAccess), detail: navigator.requestMediaKeySystemAccess ? t('diagEmeAvail') : t('diagEmeNo') };
+  return { ok: false, detail: '—' };
 }
 
 var diagRunning = false;
@@ -1915,7 +2542,7 @@ async function runDiag() {
   if (diagRunning) return;
   diagRunning = true;
   var btn = document.getElementById('btn-diag-run');
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Testando…'; }
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ ' + t('diagTesting'); }
 
   var summary = document.getElementById('diag-summary');
   if (summary) { summary.style.display = 'none'; summary.className = ''; }
@@ -1925,45 +2552,44 @@ async function runDiag() {
   var resultados = {};
 
   // Testa em paralelo por categoria
-  var promises = DIAG_TESTS.map(async function(t) {
-    if (t.type === 'local') {
-      var res = testLocal(t.id);
-      updateDiagRow(t.id, res.ok ? 'ok' : 'warn', res.detail);
-      resultados[t.id] = res.ok ? 'ok' : 'warn';
+  var promises = DIAG_TESTS.map(async function(dt) {
+    if (dt.type === 'local') {
+      var res = testLocal(dt.id);
+      updateDiagRow(dt.id, res.ok ? 'ok' : 'warn', res.detail);
+      resultados[dt.id] = res.ok ? 'ok' : 'warn';
       return;
     }
-    if (t.type === 'api') {
-      var res = await testAPI(t.url);
+    if (dt.type === 'api') {
+      var res = await testAPI(dt.url);
       if (res.ok) {
-        updateDiagRow(t.id, 'ok', res.count + ' itens recebidos', res.ms);
-        resultados[t.id] = 'ok';
+        updateDiagRow(dt.id, 'ok', res.count + ' ' + t('diagItemsReceived'), res.ms);
+        resultados[dt.id] = 'ok';
       } else {
-        updateDiagRow(t.id, 'fail', res.err, res.ms);
-        resultados[t.id] = 'fail';
+        updateDiagRow(dt.id, 'fail', res.err, res.ms);
+        resultados[dt.id] = 'fail';
       }
       return;
     }
-    if (t.type === 'iptv') {
-      var res = await testIPTV(t.url);
+    if (dt.type === 'iptv') {
+      var res = await testIPTV(dt.url);
       if (res.ok) {
-        updateDiagRow(t.id, 'ok', res.count + ' canais encontrados', res.ms);
-        resultados[t.id] = 'ok';
+        updateDiagRow(dt.id, 'ok', res.count + ' ' + t('diagChannelsFound'), res.ms);
+        resultados[dt.id] = 'ok';
       } else {
-        updateDiagRow(t.id, 'fail', res.err, res.ms);
-        resultados[t.id] = 'fail';
+        updateDiagRow(dt.id, 'fail', res.err, res.ms);
+        resultados[dt.id] = 'fail';
       }
       return;
     }
-    if (t.type === 'embed') {
-      // no-cors: se chegar resposta opaca = servidor está de pé
-      var res = await testURL(t.url, 8000);
+    if (dt.type === 'embed') {
+      var res = await testURL(dt.url, 8000);
       if (res.ok) {
-        updateDiagRow(t.id, 'ok', 'Servidor respondeu (modo no-cors)', res.ms);
-        resultados[t.id] = 'ok';
+        updateDiagRow(dt.id, 'ok', t('diagServerResp'), res.ms);
+        resultados[dt.id] = 'ok';
       } else {
         var isTout = (res.err || '').toLowerCase().includes('abort') || res.ms >= 7900;
-        updateDiagRow(t.id, 'fail', isTout ? 'Timeout — servidor pode estar fora' : res.err, res.ms);
-        resultados[t.id] = 'fail';
+        updateDiagRow(dt.id, 'fail', isTout ? t('diagTimeout') : res.err, res.ms);
+        resultados[dt.id] = 'fail';
       }
     }
   });
@@ -1980,13 +2606,13 @@ async function runDiag() {
   var cls, msg;
   if (failCount === 0) {
     cls = 'ok';
-    msg = '✅ Tudo funcionando! ' + okCount + '/' + total + ' serviços online.';
+    msg = '✅ ' + t('diagAllOk') + ' ' + okCount + '/' + total + ' ' + t('diagServicesOnline');
   } else if (okCount >= failCount) {
     cls = 'parcial';
-    msg = '⚠️ ' + okCount + ' OK · ' + failCount + ' com falha · ' + warnCount + ' avisos — use os servidores marcados como ✅.';
+    msg = '⚠️ ' + okCount + ' OK · ' + failCount + ' ' + t('diagPartial') + ' · ' + warnCount + ' ' + t('diagWarnings') + ' — ' + t('diagUseFallback');
   } else {
     cls = 'fail';
-    msg = '❌ ' + failCount + '/' + total + ' serviços falharam. Verifique sua conexão ou tente mais tarde.';
+    msg = '❌ ' + failCount + '/' + total + ' ' + t('diagFailed');
   }
 
   if (summary) {
@@ -1996,7 +2622,7 @@ async function runDiag() {
   }
 
   diagRunning = false;
-  if (btn) { btn.disabled = false; btn.textContent = '↺ Testar Novamente'; }
+  if (btn) { btn.disabled = false; btn.textContent = '↺ ' + t('diagTestAgain'); }
 }
 
 document.getElementById('btn-diag').onclick = function() {
@@ -2042,6 +2668,7 @@ window.addEventListener('scroll', function() {
 // ═══════════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════════
+applyLangUI();
 renderNavs();
 carregarCatalogo();
 </script>
