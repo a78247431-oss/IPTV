@@ -464,23 +464,7 @@ var SERVERS = [
   }
 ];
 
-// ═══════════════════════════════════════════════════════════
-// SERVIDORES ANIME (via MAL ID — mesma lógica dos filmes/séries)
-// ═══════════════════════════════════════════════════════════
-var ANIME_SERVERS = [
-  {
-    name: 'VidSrc Pro', icon: '⛩', color: '#e50914', rec: true,
-    anime: function(malId, ep) { return 'https://vidsrc.pro/embed/anime?mal=' + malId + '&ep=' + ep; }
-  },
-  {
-    name: '2Anime', icon: '🔵', color: '#2563eb', rec: false,
-    anime: function(malId, ep) { return 'https://2anime.xyz/embed/' + malId + '/' + ep; }
-  },
-  {
-    name: 'VidSrc.cc', icon: '🎌', color: '#7c3aed', rec: false,
-    anime: function(malId, ep) { return 'https://vidsrc.cc/embed/anime?malId=' + malId + '&ep=' + ep; }
-  }
-];
+
 
 // ═══════════════════════════════════════════════════════════
 // APIS CATÁLOGO
@@ -495,7 +479,6 @@ var catalog = null, hero = null;
 var abaAtiva = 'home';
 var itemSelecionado = null;
 var temporada = 1, episodio = 1;
-var animeEpisodio = 1;
 var serverAtivo = -1;
 var TMDB_DEFAULT_KEY = '2dca580c2a14b55200e784d157207b4d'; // chave padrão pública
 var tmdbKey = TMDB_DEFAULT_KEY;
@@ -1870,7 +1853,30 @@ async function carregarDetalhes(id, type) {
     var malId = String(id).replace('jikan_', '');
     var d = await jikanFetch('/anime/' + malId);
     if (!d || !d.data) return null;
-    return normalizeJikan(d.data);
+    var base = normalizeJikan(d.data);
+    // Tenta obter TMDB/IMDB ID para usar os mesmos servidores de series
+    if (tmdbKey && base.title) {
+      var q = encodeURIComponent(base.title);
+      var sr = await tmdbFetch('/search/tv', '&query=' + q);
+      if (sr && sr.results && sr.results.length) {
+        var r0 = sr.results[0];
+        var d2 = await tmdbFetch('/tv/' + r0.id, '&append_to_response=external_ids');
+        if (d2) {
+          base.tmdbId = String(r0.id);
+          base.imdbId = (d2.external_ids && d2.external_ids.imdb_id) || null;
+          if (!base.imdbId) base.imdbId = 'tmdb:' + r0.id;
+        }
+      }
+    }
+    // Sem TMDB key: tenta buscar imdb_id via Jikan
+    if (!base.imdbId && d.data && d.data.external_links) {
+      var imdbLink = (d.data.external_links || []).find(function(l){ return l && l.url && l.url.includes('imdb.com'); });
+      if (imdbLink) {
+        var m = imdbLink.url.match(/tt\d+/);
+        if (m) base.imdbId = m[0];
+      }
+    }
+    return base;
   }
 
   // Se temos TMDB ID (item vindo do TMDB), busca detalhes localizados
@@ -1947,9 +1953,9 @@ function preencherModal(item) {
     var totalEps = item.number_of_seasons || '';
     document.getElementById('modal-ep-sel').innerHTML =
       '<div class="ep-sel">' +
-        '<label>' + t('episode') + ': <input type="number" id="inAnimeEp" value="1" min="1"' + (totalEps ? ' max="' + totalEps + '"' : '') + '></label>' +
-        (totalEps ? '<span style="font-size:12px;color:var(--text2)">' + t('of') + ' ' + totalEps + ' ' + t('eps') + '</span>' : '') +
-        '<button onclick="buscarAnimeEpisodio()">🔍 ' + t('search') + '</button>' +
+        '<label>' + t('season') + ': <input type="number" id="inSeason" value="1" min="1" max="20"></label>' +
+        '<label>' + t('episode') + ': <input type="number" id="inEpisode" value="1" min="1"' + (totalEps ? ' max="' + totalEps + '"' : '') + '></label>' +
+        '<button onclick="buscarEpisodio()">🔍 ' + t('search') + '</button>' +
       '</div>';
   }
 }
@@ -1972,13 +1978,13 @@ var _sandboxHandler = null;
 
 function getSrvUrl(idx, item) {
   var srv = SERVERS[idx];
-  var id  = item.imdbId;
   var s   = temporada, e = episodio;
   var inS = document.getElementById('inSeason');
   var inE = document.getElementById('inEpisode');
   if (inS) s = parseInt(inS.value) || 1;
   if (inE) e = parseInt(inE.value) || 1;
-  return item._type === 'series' ? srv.series(item, s, e) : srv.movie(item);
+  // Anime e series usam a mesma URL de episodio
+  return (item._type === 'series' || item._type === 'anime') ? srv.series(item, s, e) : srv.movie(item);
 }
 
 // Pinga um servidor (no-cors, timeout 5s)
@@ -2026,19 +2032,8 @@ function mostrarServidores(item) {
   var grid = document.getElementById('server-grid');
   var area = document.getElementById('embed-area');
 
-  // Anime com MAL ID → usa ANIME_SERVERS com player embed
-  if (item._type === 'anime' && item.malId) {
-    _srvStatus = {};
-    ANIME_SERVERS.forEach(function(_, i) { _srvStatus['a' + i] = 'pending'; });
-    serverAtivo = -1;
-    renderAnimeSrvBtns(item);
-    setEmbedLoading('🔍 ' + t('testAnimeServers'));
-    autoPlayAnime(item);
-    return;
-  }
-
-  // Anime sem MAL ID → fallback externo
-  if (!item.imdbId) {
+  // Sem ID de nenhum tipo → fallback externo
+  if (!item.imdbId && !item.tmdbId) {
     var q = encodeURIComponent(item.title || item.name || '');
     grid.innerHTML = '';
     area.innerHTML =
@@ -2223,163 +2218,9 @@ function buscarEpisodio() {
   if (serverAtivo >= 0) playServer(serverAtivo);
 }
 
-function buscarAnimeEpisodio() {
-  var inE = document.getElementById('inAnimeEp');
-  if (inE) animeEpisodio = parseInt(inE.value) || 1;
-  if (serverAtivo >= 0 && typeof serverAtivo === 'string' && serverAtivo.startsWith('a')) {
-    playAnimeServer(parseInt(serverAtivo.slice(1)));
-  } else {
-    autoPlayAnime(itemSelecionado);
-  }
-}
 
-// ═══════════════════════════════════════════════════════════
-// SERVIDORES ANIME — MESMA LÓGICA DO AUTO-PLAY
-// ═══════════════════════════════════════════════════════════
 
-function getAnimeSrvUrl(idx, malId) {
-  var ep = animeEpisodio;
-  var inE = document.getElementById('inAnimeEp');
-  if (inE) ep = parseInt(inE.value) || 1;
-  return ANIME_SERVERS[idx].anime(malId, ep);
-}
 
-function renderAnimeSrvBtns(item) {
-  var grid = document.getElementById('server-grid');
-  if (!grid) return;
-  grid.innerHTML = ANIME_SERVERS.map(function(srv, idx) {
-    var key = 'a' + idx;
-    var st    = _srvStatus[key] || 'pending';
-    var badge = st === 'ok'      ? '<span class="srv-status ok">✅ ' + t('diagOnline') + '</span>'
-              : st === 'fail'    ? '<span class="srv-status fail">❌ ' + t('diagOffline') + '</span>'
-              : st === 'playing' ? '<span class="srv-status playing">▶ ' + t('diagInUse') + '</span>'
-              :                    '<span class="srv-status pend">⏳</span>';
-    var active = serverAtivo === key;
-    return '<button class="server-btn' + (active ? ' ativo' : '') + '" id="srv-btn-a' + idx + '" onclick="playAnimeServer(' + idx + ')" ' +
-      'style="' + (active ? 'border-color:' + srv.color + ';background:rgba(255,255,255,.04);' : (srv.rec ? 'border-color:' + srv.color + '55;' : '')) + '">' +
-      '<span class="srv-icon">' + srv.icon + '</span>' +
-      '<div style="flex:1">' +
-        '<div class="srv-name" style="color:' + (active ? srv.color : srv.rec ? srv.color : 'var(--text)') + '">' + esc(srv.name) + (srv.rec ? ' ✦' : '') + '</div>' +
-        badge +
-      '</div>' +
-    '</button>';
-  }).join('');
-}
-
-function autoPlayAnime(item) {
-  if (!item || !item.malId) return;
-
-  var cached = -1;
-  try { cached = parseInt(localStorage.getItem('sf_last_anime_srv') || '-1'); } catch(e) {}
-
-  // Servidores de anime bloqueiam requisicoes no-cors, entao o ping sempre falha.
-  // Igual aos filmes quando clicados manualmente: vai direto pro player sem pingar.
-  ANIME_SERVERS.forEach(function(_, i) { _srvStatus['a' + i] = 'ok'; });
-  renderAnimeSrvBtns(item);
-
-  var all = ANIME_SERVERS.map(function(_, i) { return i; });
-  var ordered = all.slice().sort(function(a, b) {
-    if (a === cached)                return -1;
-    if (b === cached)                return 1;
-    if (ANIME_SERVERS[a].rec)        return -1;
-    if (ANIME_SERVERS[b].rec)        return 1;
-    return 0;
-  });
-
-  _autoQueue = ordered;
-  playNextAnimeAuto(item);
-}
-
-function playNextAnimeAuto(item) {
-  if (!_autoQueue.length) {
-    var area = document.getElementById('embed-area');
-    if (area) area.innerHTML =
-      '<div class="embed-fallback" style="display:flex">' +
-        '<span style="font-size:28px">⚠️</span>' +
-        '<p>' + t('allFailed') + '</p>' +
-        '<small>' + t('disableAdblock') + '</small>' +
-      '</div>';
-    return;
-  }
-  var idx = _autoQueue.shift();
-  playAnimeServer(idx, true);
-}
-
-function playAnimeServer(idx, isAuto) {
-  var srv  = ANIME_SERVERS[idx];
-  var item = itemSelecionado;
-  if (!item || !item.malId) return;
-
-  var url = getAnimeSrvUrl(idx, item.malId);
-
-  ANIME_SERVERS.forEach(function(_, i) { if (_srvStatus['a' + i] !== 'fail') _srvStatus['a' + i] = 'ok'; });
-  _srvStatus['a' + idx] = 'playing';
-  serverAtivo = 'a' + idx;
-  renderAnimeSrvBtns(item);
-
-  try { localStorage.setItem('sf_last_anime_srv', idx); } catch(e) {}
-
-  document.getElementById('embed-area').innerHTML =
-    '<div class="auto-playing-label">▶ ' + t('playingVia') + ' <strong>' + esc(srv.name) + '</strong>' +
-      (isAuto ? ' <span class="auto-tag">' + t('auto') + '</span>' : '') +
-    '</div>' +
-    '<div class="embed-player-wrap" id="embed-wrap">' +
-      '<iframe id="embed-iframe" src="' + url + '" allow="autoplay; encrypted-media; fullscreen; picture-in-picture; web-share; clipboard-write; xr-spatial-tracking; payment; microphone; camera; gyroscope; accelerometer" referrerpolicy="no-referrer-when-downgrade"></iframe>' +
-    '</div>' +
-    '<div class="embed-fallback" id="embed-fallback" style="display:none">' +
-      '<span style="font-size:28px">⚠️</span>' +
-      '<p id="fallback-msg">' + t('serverBlocked') + '</p>' +
-      '<small>' + t('disableAdblock') + '</small>' +
-      '<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:6px">' +
-        '<a class="btn-nova-aba" href="' + url + '" target="_blank" rel="noopener">▶ ' + t('openNewTab') + '</a>' +
-        (_autoQueue && _autoQueue.length ? '<button class="btn-next-srv" onclick="playNextAnimeAuto(itemSelecionado)">⟳ ' + t('tryNext') + '</button>' : '') +
-      '</div>' +
-    '</div>';
-
-  if (_sandboxHandler) window.removeEventListener('message', _sandboxHandler);
-  _sandboxHandler = function(ev) {
-    if (!ev.data) return;
-    var msg = typeof ev.data === 'string' ? ev.data : JSON.stringify(ev.data);
-    if (msg.toLowerCase().includes('sandbox') || msg.toLowerCase().includes('blocked') || msg.toLowerCase().includes('restrict')) {
-      onAnimePlayerBlocked(idx, item, url, isAuto);
-    }
-  };
-  window.addEventListener('message', _sandboxHandler);
-
-  clearTimeout(window._embedTimer);
-  window._embedTimer = setTimeout(function() {
-    var iframe = document.getElementById('embed-iframe');
-    if (!iframe) return;
-    try {
-      var doc = iframe.contentDocument;
-      if (doc && (doc.location.href === 'about:blank' || !doc.body || doc.body.innerHTML.trim() === '')) {
-        onAnimePlayerBlocked(idx, item, url, isAuto);
-      }
-    } catch(err) { /* cross-origin = carregou corretamente */ }
-  }, 7000);
-
-  setTimeout(function() {
-    var el = document.getElementById('embed-area');
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }, 80);
-}
-
-function onAnimePlayerBlocked(idx, item, url, wasAuto) {
-  clearTimeout(window._embedTimer);
-  _srvStatus['a' + idx] = 'fail';
-  if (wasAuto && _autoQueue && _autoQueue.length) {
-    renderAnimeSrvBtns(item);
-    setTimeout(function() { playNextAnimeAuto(item); }, 800);
-    return;
-  }
-  renderAnimeSrvBtns(item);
-  var wrap = document.getElementById('embed-wrap');
-  var fall = document.getElementById('embed-fallback');
-  var msg  = document.getElementById('fallback-msg');
-  if (wrap) wrap.style.display = 'none';
-  if (fall) fall.style.display = 'flex';
-  if (msg)  msg.textContent    = t('serverBlockedName').replace('{name}', ANIME_SERVERS[idx].name);
-}
 
 // ═══════════════════════════════════════════════════════════
 // IPTV — CANAIS AO VIVO
