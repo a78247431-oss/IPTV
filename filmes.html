@@ -338,7 +338,7 @@ input{font-family:inherit;color:inherit}
       <input id="searchInput" type="text" placeholder="Buscar filmes, séries, animes…">
     </div>
     <button class="btn-cfg" id="btn-diag" title="Diagnóstico de Servidores" style="font-size:15px">🧪</button>
-    <button class="btn-cfg" id="btn-lang" title="Idioma" style="font-size:16px;position:relative">🌐</button>
+
     <button class="btn-cfg" id="btn-cfg" title="Configurações">⚙</button>
   </div>
   <div id="main-content" style="padding-top:64px;min-height:100vh">
@@ -352,7 +352,7 @@ input{font-family:inherit;color:inherit}
 </div>
 
 <button class="scroll-top-btn" id="scrollTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
-<div class="lang-drop" id="lang-drop"></div>
+
 
 <!-- ══════════════════════════════════════ MODAL DETALHE ══════════════════════════════════════ -->
 <div id="tela-modal">
@@ -1154,7 +1154,7 @@ function setLang(code) {
 function applyLangUI() {
   document.getElementById('searchInput').placeholder = t('searchPh');
   document.getElementById('btn-diag').title = t('diag');
-  document.getElementById('btn-lang').title = t('language');
+
   var loadMsg = document.getElementById('loading-msg');
   if (loadMsg) loadMsg.textContent = t('loadingCatalog');
   var loadSrc = document.getElementById('loading-sources');
@@ -1180,8 +1180,7 @@ function applyLangUI() {
   if (diagT) diagT.textContent = '🧪 ' + t('diag');
   var diagS = document.querySelector('.diag-sub');
   if (diagS) diagS.textContent = t('diagSub');
-  // Language selector
-  renderLangSelector();
+
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1394,39 +1393,7 @@ function renderNavs() {
   }).join('') + '</div>';
 }
 
-function renderLangSelector() {
-  var drop = document.getElementById('lang-drop');
-  if (!drop) return;
-  var html = '';
-  Object.keys(LANGS).forEach(function(code) {
-    var L = LANGS[code];
-    html += '<button class="lang-opt' + (currentLang === code ? ' ativo' : '') + '" onclick="setLang(\'' + code + '\');closeLangDrop()">' +
-      '<span class="lflag">' + L.flag + '</span>' +
-      '<span>' + L.name + '</span>' +
-      '<span class="lcheck">✓</span>' +
-    '</button>';
-  });
-  drop.innerHTML = html;
-}
 
-function closeLangDrop() {
-  document.getElementById('lang-drop').classList.remove('vis');
-}
-
-document.getElementById('btn-lang').onclick = function(e) {
-  e.stopPropagation();
-  var drop = document.getElementById('lang-drop');
-  var btn = document.getElementById('btn-lang');
-  var rect = btn.getBoundingClientRect();
-  drop.style.top = (rect.bottom + 6) + 'px';
-  drop.style.right = (window.innerWidth - rect.right) + 'px';
-  drop.classList.toggle('vis');
-  renderLangSelector();
-};
-document.addEventListener('click', function(e) {
-  var drop = document.getElementById('lang-drop');
-  if (drop && !drop.contains(e.target) && e.target.id !== 'btn-lang') drop.classList.remove('vis');
-});
 function trocarAba(aba) {
   abaAtiva = aba;
   document.getElementById('searchInput').value = '';
