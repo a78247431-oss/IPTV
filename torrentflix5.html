@@ -345,7 +345,7 @@ input{font-family:inherit;color:inherit}
     <div class="loading-screen">
       <div class="spin"></div>
       <p id="loading-msg">Carregando catálogo…</p>
-      <small>Cinemeta · Jikan · VidSrc · IPTV-Org</small>
+      <small id="loading-sources">Cinemeta · Jikan · VidSrc · IPTV-Org</small>
     </div>
   </div>
   <div class="mobile-nav" id="mobile-nav"></div>
@@ -423,8 +423,12 @@ input{font-family:inherit;color:inherit}
       <span class="pill pill-p">Embed.su</span>
       <span class="pill pill-c">IPTV-Org</span>
     </div>
-    <label>Chave TMDB (opcional — metadados extras)</label>
-    <input id="settings-tmdb" type="text" placeholder="Chave TMDB v3 (opcional)…">
+    <div id="tmdb-lang-banner" style="background:rgba(229,9,20,.08);border:1px solid rgba(229,9,20,.25);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;line-height:1.55;color:var(--text2)">
+      🌐 <strong style="color:var(--text)">Conteúdo no seu idioma:</strong> adicione uma chave TMDB gratuita e os títulos, descrições e catálogo serão exibidos em <strong style="color:var(--accent)" id="tmdb-lang-name">Português (pt-BR)</strong>.<br>
+      <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener" style="color:var(--accent);font-weight:700">Obter chave grátis em themoviedb.org →</a>
+    </div>
+    <label>Chave TMDB (conteúdo no idioma)</label>
+    <input id="settings-tmdb" type="text" placeholder="Chave TMDB v3 (grátis em themoviedb.org)…">
     <div class="settings-btns">
       <button class="btn-cancel" id="settings-cancelar">Cancelar</button>
       <button class="btn-save" id="settings-salvar">Salvar</button>
@@ -501,6 +505,89 @@ var tmdbKey = '';
 var hlsInstance = null;
 var iptvAll = [], iptvFiltrado = [], iptvCategoria = 'todos';
 try { tmdbKey = localStorage.getItem('sf_tmdb') || ''; } catch(e){}
+
+// ═══════════════════════════════════════════════════════════
+// TMDB — IDIOMA DO CONTEÚDO
+// ═══════════════════════════════════════════════════════════
+var TMDB = 'https://api.themoviedb.org/3';
+var TMDB_IMG = 'https://image.tmdb.org/t/p/';
+
+var TMDB_LANG_MAP = {
+  pt:'pt-BR', en:'en-US', es:'es-ES', fr:'fr-FR', de:'de-DE',
+  it:'it-IT', ja:'ja-JP', ko:'ko-KR', zh:'zh-CN', ru:'ru-RU'
+};
+var TMDB_MOVIE_GENRES = {
+  Action:28, Comedy:35, Horror:27, 'Sci-Fi':878, Thriller:53,
+  Romance:10749, Adventure:12, Fantasy:14, Family:10751, Crime:80,
+  Animation:16, Drama:18, Documentary:99
+};
+var TMDB_SERIES_GENRES = {
+  Drama:18, Crime:80, Comedy:35, Thriller:53, Family:10751
+};
+
+function tmdbLang() { return TMDB_LANG_MAP[currentLang] || 'pt-BR'; }
+
+async function tmdbFetch(path, extraParams) {
+  if (!tmdbKey) return null;
+  try {
+    var sep = path.includes('?') ? '&' : '?';
+    var url = TMDB + path + sep + 'api_key=' + tmdbKey + '&language=' + tmdbLang() + (extraParams || '');
+    var r = await fetchT(url, 9000);
+    if (!r.ok) return null;
+    return await r.json();
+  } catch(e) { return null; }
+}
+
+function normalizeTMDB(m, type) {
+  var isMovie = (type === 'movie');
+  var imdbId  = (m.external_ids && m.external_ids.imdb_id) || null;
+  var tmdbId  = String(m.id);
+  var idForApp = imdbId || ('tmdb:' + tmdbId);
+  return {
+    id: idForApp, imdbId: imdbId, tmdbId: tmdbId, malId: null, _type: type,
+    title: (isMovie ? m.title : m.name) || '',
+    name:  (isMovie ? m.title : m.name) || '',
+    poster_url:   m.poster_path   ? TMDB_IMG + 'w342'  + m.poster_path   : '',
+    backdrop_url: m.backdrop_path ? TMDB_IMG + 'w1280' + m.backdrop_path : '',
+    vote_average: m.vote_average || 0,
+    release_date:    isMovie ? (m.release_date || '')   : '',
+    first_air_date: !isMovie ? (m.first_air_date || '') : '',
+    overview: m.overview || '',
+    genres: (m.genre_ids || []).map(function(gid) {
+      var names = {'28':'Action','35':'Comedy','27':'Horror','878':'Sci-Fi','53':'Thriller',
+        '10749':'Romance','12':'Adventure','14':'Fantasy','10751':'Family','80':'Crime',
+        '16':'Animation','18':'Drama','99':'Documentary','10759':'Action & Adventure'};
+      return { name: names[String(gid)] || String(gid) };
+    }),
+    runtime: m.runtime ? (m.runtime + ' min') : (m.episode_run_time && m.episode_run_time[0] ? m.episode_run_time[0] + ' min' : ''),
+    number_of_seasons: m.number_of_seasons || 1
+  };
+}
+
+async function tmdbCatalog(type, genre) {
+  var isMovie = (type === 'movie');
+  var path, data;
+  if (genre === 'top') {
+    data = await tmdbFetch('/' + type + '/popular');
+    if (!data || !data.results) return [];
+    return data.results.map(function(m){ return normalizeTMDB(m, isMovie ? 'movie' : 'series'); });
+  }
+  var gmap = isMovie ? TMDB_MOVIE_GENRES : TMDB_SERIES_GENRES;
+  var gid = gmap[genre];
+  if (!gid) return [];
+  data = await tmdbFetch('/discover/' + type, '&with_genres=' + gid + '&sort_by=popularity.desc');
+  if (!data || !data.results) return [];
+  return data.results.map(function(m){ return normalizeTMDB(m, isMovie ? 'movie' : 'series'); });
+}
+
+async function tmdbTrending() {
+  var data = await tmdbFetch('/trending/all/week');
+  if (!data || !data.results) return [];
+  return data.results.slice(0, 20).map(function(m) {
+    var type = m.media_type === 'tv' ? 'series' : 'movie';
+    return normalizeTMDB(m, type);
+  });
+}
 
 // ═══════════════════════════════════════════════════════════
 // SISTEMA DE IDIOMAS (i18n)
@@ -1056,7 +1143,15 @@ function setLang(code) {
   try { localStorage.setItem('sf_lang', code); } catch(e){}
   applyLangUI();
   renderNavs();
-  if (catalog) renderAba(abaAtiva);
+  // Se TMDB key disponível: recarrega catálogo no novo idioma
+  if (tmdbKey) {
+    catalog = null; hero = null;
+    var mc = document.getElementById('main-content');
+    if (mc) mc.innerHTML = '<div class="loading-screen"><div class="spin"></div><p id="loading-msg">' + t('loadingCatalog') + '</p><small id="loading-sources">TMDB (' + tmdbLang() + ') · Jikan · VidSrc · IPTV-Org</small></div>';
+    carregarCatalogo();
+  } else if (catalog) {
+    renderAba(abaAtiva);
+  }
 }
 
 function applyLangUI() {
@@ -1065,6 +1160,14 @@ function applyLangUI() {
   document.getElementById('btn-lang').title = t('language');
   var loadMsg = document.getElementById('loading-msg');
   if (loadMsg) loadMsg.textContent = t('loadingCatalog');
+  var loadSrc = document.getElementById('loading-sources');
+  if (loadSrc) loadSrc.textContent = tmdbKey ? ('TMDB (' + tmdbLang() + ') · Jikan · VidSrc · IPTV-Org') : 'Cinemeta · Jikan · VidSrc · IPTV-Org';
+  // Banner TMDB idioma
+  var langNames = {pt:'Português (pt-BR)',en:'English (en-US)',es:'Español (es-ES)',fr:'Français (fr-FR)',de:'Deutsch (de-DE)',it:'Italiano (it-IT)',ja:'日本語 (ja-JP)',ko:'한국어 (ko-KR)',zh:'中文 (zh-CN)',ru:'Русский (ru-RU)'};
+  var tmdbBanner = document.getElementById('tmdb-lang-banner');
+  var tmdbLangName = document.getElementById('tmdb-lang-name');
+  if (tmdbBanner) tmdbBanner.style.display = tmdbKey ? 'none' : 'block';
+  if (tmdbLangName) tmdbLangName.textContent = langNames[currentLang] || tmdbLang();
   var srvTitle = document.getElementById('servers-title');
   if (srvTitle) srvTitle.textContent = '▶ ' + t('watchOnline');
   // Update settings modal
@@ -1157,70 +1260,111 @@ function normalizeJikan(a) {
 // CATÁLOGO
 // ═══════════════════════════════════════════════════════════
 async function carregarCatalogo() {
-  var results = await Promise.all([
-    cinemetaFetch('/catalog/movie/top.json'),
-    cinemetaFetch('/catalog/series/top.json'),
-    jikanFetch('/top/anime?limit=36&filter=bypopularity'),
-    jikanFetch('/seasons/now?limit=30'),
-    cinemetaFetch('/catalog/movie/top/genre=Action.json'),
-    cinemetaFetch('/catalog/movie/top/genre=Horror.json'),
-    cinemetaFetch('/catalog/movie/top/genre=Sci-Fi.json'),
-    cinemetaFetch('/catalog/movie/top/genre=Crime.json'),
-    cinemetaFetch('/catalog/movie/top/genre=Documentary.json'),
-    cinemetaFetch('/catalog/movie/top/genre=Animation.json'),
-    cinemetaFetch('/catalog/series/top/genre=Drama.json'),
-    cinemetaFetch('/catalog/series/top/genre=Crime.json'),
-    cinemetaFetch('/catalog/movie/top/genre=Thriller.json'),
-    cinemetaFetch('/catalog/movie/top/genre=Comedy.json'),
-    cinemetaFetch('/catalog/movie/top/genre=Romance.json'),
-    cinemetaFetch('/catalog/movie/top/genre=Family.json'),
-    cinemetaFetch('/catalog/movie/top/genre=Adventure.json'),
-    cinemetaFetch('/catalog/movie/top/genre=Fantasy.json'),
-    cinemetaFetch('/catalog/series/top/genre=Comedy.json'),
-    cinemetaFetch('/catalog/series/top/genre=Thriller.json'),
-    cinemetaFetch('/catalog/series/top/genre=Family.json'),
-    jikanFetch('/top/anime?limit=24&filter=airing'),
-    jikanFetch('/top/anime?limit=20&type=movie'),
-    jikanFetch('/top/anime?limit=20&genres=1'),  // Action anime
-    jikanFetch('/top/anime?limit=20&genres=36'), // Slice of Life
-  ]);
-
-  function nm(arr, type){ return (arr && arr.metas ? arr.metas : []).map(function(m){ return normalizeCinemeta(m, type); }); }
   function nj(arr){ return (arr && arr.data ? arr.data : []).map(normalizeJikan); }
 
-  var movies = nm(results[0], 'movie');
-  var series = nm(results[1], 'series');
-  var anime  = nj(results[2]);
-  var airing = nj(results[3]);
-  var trending = [];
-  var maxLen = Math.max(movies.length, series.length);
-  for (var i = 0; i < Math.min(maxLen, 14); i++) {
-    if (movies[i]) trending.push(movies[i]);
-    if (series[i]) trending.push(series[i]);
+  // ── Anime (sempre via Jikan, tem idioma inglês/japonês) ──
+  var animeResults = await Promise.all([
+    jikanFetch('/top/anime?limit=36&filter=bypopularity'),
+    jikanFetch('/seasons/now?limit=30'),
+    jikanFetch('/top/anime?limit=24&filter=airing'),
+    jikanFetch('/top/anime?limit=20&type=movie'),
+    jikanFetch('/top/anime?limit=20&genres=1'),
+    jikanFetch('/top/anime?limit=20&genres=36'),
+  ]);
+  var anime        = nj(animeResults[0]);
+  var airing       = nj(animeResults[1]);
+  var animeAiring  = nj(animeResults[2]);
+  var animeMovies  = nj(animeResults[3]);
+  var animeAction  = nj(animeResults[4]);
+  var animeSlice   = nj(animeResults[5]);
+
+  var movies, series, trending, action, horror, scifi, crime, docs,
+      animation, dramas, crimeS, thriller, comedy, romance, family,
+      adventure, fantasy, comedyS, thrillerS, familyS;
+
+  if (tmdbKey) {
+    // ── TMDB: conteúdo no idioma do usuário ──
+    var tResults = await Promise.all([
+      tmdbCatalog('movie', 'top'),
+      tmdbCatalog('tv',    'top'),
+      tmdbTrending(),
+      tmdbCatalog('movie', 'Action'),
+      tmdbCatalog('movie', 'Horror'),
+      tmdbCatalog('movie', 'Sci-Fi'),
+      tmdbCatalog('movie', 'Crime'),
+      tmdbCatalog('movie', 'Documentary'),
+      tmdbCatalog('movie', 'Animation'),
+      tmdbCatalog('tv',    'Drama'),
+      tmdbCatalog('tv',    'Crime'),
+      tmdbCatalog('movie', 'Thriller'),
+      tmdbCatalog('movie', 'Comedy'),
+      tmdbCatalog('movie', 'Romance'),
+      tmdbCatalog('movie', 'Family'),
+      tmdbCatalog('movie', 'Adventure'),
+      tmdbCatalog('movie', 'Fantasy'),
+      tmdbCatalog('tv',    'Comedy'),
+      tmdbCatalog('tv',    'Thriller'),
+      tmdbCatalog('tv',    'Family'),
+    ]);
+    movies    = tResults[0];
+    series    = tResults[1];
+    trending  = tResults[2].length ? tResults[2] : movies.slice(0, 14).concat(series.slice(0, 6));
+    action    = tResults[3];  horror   = tResults[4];  scifi     = tResults[5];
+    crime     = tResults[6];  docs     = tResults[7];  animation = tResults[8];
+    dramas    = tResults[9];  crimeS   = tResults[10]; thriller  = tResults[11];
+    comedy    = tResults[12]; romance  = tResults[13]; family    = tResults[14];
+    adventure = tResults[15]; fantasy  = tResults[16]; comedyS   = tResults[17];
+    thrillerS = tResults[18]; familyS  = tResults[19];
+  } else {
+    // ── Cinemeta fallback (inglês) ──
+    function nm(arr, type){ return (arr && arr.metas ? arr.metas : []).map(function(m){ return normalizeCinemeta(m, type); }); }
+    var cResults = await Promise.all([
+      cinemetaFetch('/catalog/movie/top.json'),
+      cinemetaFetch('/catalog/series/top.json'),
+      cinemetaFetch('/catalog/movie/top/genre=Action.json'),
+      cinemetaFetch('/catalog/movie/top/genre=Horror.json'),
+      cinemetaFetch('/catalog/movie/top/genre=Sci-Fi.json'),
+      cinemetaFetch('/catalog/movie/top/genre=Crime.json'),
+      cinemetaFetch('/catalog/movie/top/genre=Documentary.json'),
+      cinemetaFetch('/catalog/movie/top/genre=Animation.json'),
+      cinemetaFetch('/catalog/series/top/genre=Drama.json'),
+      cinemetaFetch('/catalog/series/top/genre=Crime.json'),
+      cinemetaFetch('/catalog/movie/top/genre=Thriller.json'),
+      cinemetaFetch('/catalog/movie/top/genre=Comedy.json'),
+      cinemetaFetch('/catalog/movie/top/genre=Romance.json'),
+      cinemetaFetch('/catalog/movie/top/genre=Family.json'),
+      cinemetaFetch('/catalog/movie/top/genre=Adventure.json'),
+      cinemetaFetch('/catalog/movie/top/genre=Fantasy.json'),
+      cinemetaFetch('/catalog/series/top/genre=Comedy.json'),
+      cinemetaFetch('/catalog/series/top/genre=Thriller.json'),
+      cinemetaFetch('/catalog/series/top/genre=Family.json'),
+    ]);
+    movies = nm(cResults[0], 'movie');
+    series = nm(cResults[1], 'series');
+    var trArr = [];
+    var ml = Math.max(movies.length, series.length);
+    for (var i = 0; i < Math.min(ml, 14); i++) {
+      if (movies[i]) trArr.push(movies[i]);
+      if (series[i]) trArr.push(series[i]);
+    }
+    trending  = trArr;
+    action    = nm(cResults[2],  'movie');  horror    = nm(cResults[3],  'movie');
+    scifi     = nm(cResults[4],  'movie');  crime     = nm(cResults[5],  'movie');
+    docs      = nm(cResults[6],  'movie');  animation = nm(cResults[7],  'movie');
+    dramas    = nm(cResults[8],  'series'); crimeS    = nm(cResults[9],  'series');
+    thriller  = nm(cResults[10], 'movie');  comedy    = nm(cResults[11], 'movie');
+    romance   = nm(cResults[12], 'movie');  family    = nm(cResults[13], 'movie');
+    adventure = nm(cResults[14], 'movie');  fantasy   = nm(cResults[15], 'movie');
+    comedyS   = nm(cResults[16], 'series'); thrillerS = nm(cResults[17], 'series');
+    familyS   = nm(cResults[18], 'series');
   }
+
   catalog = {
     movies, series, anime, airing, trending,
-    action:     nm(results[4],  'movie'),
-    horror:     nm(results[5],  'movie'),
-    scifi:      nm(results[6],  'movie'),
-    crime:      nm(results[7],  'movie'),
-    docs:       nm(results[8],  'movie'),
-    animation:  nm(results[9],  'movie'),
-    dramas:     nm(results[10], 'series'),
-    crimeS:     nm(results[11], 'series'),
-    thriller:   nm(results[12], 'movie'),
-    comedy:     nm(results[13], 'movie'),
-    romance:    nm(results[14], 'movie'),
-    family:     nm(results[15], 'movie'),
-    adventure:  nm(results[16], 'movie'),
-    fantasy:    nm(results[17], 'movie'),
-    comedyS:    nm(results[18], 'series'),
-    thrillerS:  nm(results[19], 'series'),
-    familyS:    nm(results[20], 'series'),
-    animeAiring: nj(results[21]),
-    animeMovies: nj(results[22]),
-    animeAction: nj(results[23]),
-    animeSlice:  nj(results[24]),
+    action, horror, scifi, crime, docs, animation,
+    dramas, crimeS, thriller, comedy, romance, family,
+    adventure, fantasy, comedyS, thrillerS, familyS,
+    animeAiring, animeMovies, animeAction, animeSlice,
   };
   hero = trending[Math.floor(Math.random() * Math.min(10, trending.length))] || null;
   renderHome();
@@ -1572,7 +1716,11 @@ async function loadMoreInfinite() {
       newItems = await fetchAnimeInfinite(genre, _inf.page);
     } else {
       var cType = (tab === 'movies' || tab === 'docs') ? 'movie' : 'series';
-      newItems = await fetchCinemetaInfinite(cType, genre, _inf.skip);
+      if (tmdbKey) {
+        newItems = await fetchTMDBInfinite(cType, genre, _inf.page);
+      } else {
+        newItems = await fetchCinemetaInfinite(cType, genre, _inf.skip);
+      }
     }
   } catch(e) {
     console.warn('Infinite fetch error:', e);
@@ -1609,6 +1757,23 @@ async function fetchCinemetaInfinite(type, genre, skip) {
   var data = await cinemetaFetch(path);
   if (!data || !data.metas) return [];
   return data.metas.map(function(m){ return normalizeCinemeta(m, type); });
+}
+
+async function fetchTMDBInfinite(type, genre, page) {
+  var ep = (type === 'series') ? 'tv' : 'movie';
+  var isMovie = (type === 'movie');
+  var data;
+  if (genre === 'top' || genre === 'Documentary') {
+    var extraG = genre === 'Documentary' ? '&with_genres=' + TMDB_MOVIE_GENRES['Documentary'] : '';
+    data = await tmdbFetch('/discover/' + ep, extraG + '&sort_by=popularity.desc&page=' + page);
+  } else {
+    var gmap = isMovie ? TMDB_MOVIE_GENRES : TMDB_SERIES_GENRES;
+    var gid = gmap[genre];
+    if (!gid) return [];
+    data = await tmdbFetch('/discover/' + ep, '&with_genres=' + gid + '&sort_by=popularity.desc&page=' + page);
+  }
+  if (!data || !data.results) return [];
+  return data.results.map(function(m){ return normalizeTMDB(m, isMovie ? 'movie' : 'series'); });
 }
 
 async function fetchAnimeInfinite(genre, page) {
@@ -1679,15 +1844,28 @@ async function buscarTudo(query) {
   var wrap = document.getElementById('main-content');
   wrap.innerHTML = '<div class="empty-msg" style="padding-top:60px"><div class="icon">🔍</div><h3>' + t('searching') + ' "' + esc(query) + '"…</h3></div>';
   var q = encodeURIComponent(query);
-  var results = await Promise.all([
-    cinemetaFetch('/catalog/movie/top/search=' + q + '.json'),
-    cinemetaFetch('/catalog/series/top/search=' + q + '.json'),
-    jikanFetch('/anime?q=' + q + '&limit=8'),
-  ]);
   var all = [];
-  if (results[0] && results[0].metas) results[0].metas.slice(0, 20).forEach(function(m){ all.push(normalizeCinemeta(m, 'movie')); });
-  if (results[1] && results[1].metas) results[1].metas.slice(0, 20).forEach(function(m){ all.push(normalizeCinemeta(m, 'series')); });
-  if (results[2] && results[2].data)  results[2].data.slice(0, 16).forEach(function(a){ all.push(normalizeJikan(a)); });
+
+  if (tmdbKey) {
+    // Busca TMDB com idioma
+    var sr = await Promise.all([
+      tmdbFetch('/search/movie',  '&query=' + q),
+      tmdbFetch('/search/tv',     '&query=' + q),
+      jikanFetch('/anime?q=' + q + '&limit=8'),
+    ]);
+    if (sr[0] && sr[0].results) sr[0].results.slice(0, 20).forEach(function(m){ all.push(normalizeTMDB(m, 'movie')); });
+    if (sr[1] && sr[1].results) sr[1].results.slice(0, 20).forEach(function(m){ all.push(normalizeTMDB(m, 'series')); });
+    if (sr[2] && sr[2].data)    sr[2].data.slice(0, 10).forEach(function(a){ all.push(normalizeJikan(a)); });
+  } else {
+    var results = await Promise.all([
+      cinemetaFetch('/catalog/movie/top/search=' + q + '.json'),
+      cinemetaFetch('/catalog/series/top/search=' + q + '.json'),
+      jikanFetch('/anime?q=' + q + '&limit=8'),
+    ]);
+    if (results[0] && results[0].metas) results[0].metas.slice(0, 20).forEach(function(m){ all.push(normalizeCinemeta(m, 'movie')); });
+    if (results[1] && results[1].metas) results[1].metas.slice(0, 20).forEach(function(m){ all.push(normalizeCinemeta(m, 'series')); });
+    if (results[2] && results[2].data)  results[2].data.slice(0, 16).forEach(function(a){ all.push(normalizeJikan(a)); });
+  }
   if (!all.length) {
     wrap.innerHTML = '<div class="empty-msg" style="padding-top:60px"><div class="icon">🔍</div><h3>' + t('noResultsFor') + ' "' + esc(query) + '"</h3></div>';
     return;
@@ -1729,6 +1907,42 @@ async function carregarDetalhes(id, type) {
     if (!d || !d.data) return null;
     return normalizeJikan(d.data);
   }
+
+  // Se temos TMDB ID (item vindo do TMDB), busca detalhes localizados
+  if (tmdbKey && String(id).startsWith('tmdb:')) {
+    var tmdbId = id.replace('tmdb:', '');
+    var ep2 = type === 'series' ? 'tv' : 'movie';
+    var d2 = await tmdbFetch('/' + ep2 + '/' + tmdbId, '&append_to_response=external_ids');
+    if (d2) {
+      var item2 = normalizeTMDB(d2, type);
+      if (type === 'series') {
+        item2.number_of_seasons = d2.number_of_seasons || 1;
+      }
+      return item2;
+    }
+  }
+
+  // Se temos IMDB ID e chave TMDB, busca detalhes localizados via find
+  if (tmdbKey && String(id).startsWith('tt')) {
+    var ep3 = type === 'series' ? 'tv' : 'movie';
+    // Primeiro tenta find por IMDB ID para pegar tmdb ID
+    var found = await tmdbFetch('/find/' + id, '&external_source=imdb_id');
+    if (found) {
+      var arr = (type === 'series' ? found.tv_results : found.movie_results) || [];
+      if (arr.length) {
+        var tmdbId3 = String(arr[0].id);
+        var d3 = await tmdbFetch('/' + ep3 + '/' + tmdbId3, '&append_to_response=external_ids');
+        if (d3) {
+          var item3 = normalizeTMDB(d3, type);
+          item3.imdbId = id; // preserva IMDB ID original
+          if (type === 'series') item3.number_of_seasons = d3.number_of_seasons || 1;
+          return item3;
+        }
+      }
+    }
+  }
+
+  // Fallback: Cinemeta
   var endpoint = type === 'series' ? 'series' : 'movie';
   var d = await cinemetaFetch('/meta/' + endpoint + '/' + id + '.json');
   if (!d || !d.meta) return null;
@@ -1799,7 +2013,7 @@ function getSrvUrl(idx, item) {
   var inE = document.getElementById('inEpisode');
   if (inS) s = parseInt(inS.value) || 1;
   if (inE) e = parseInt(inE.value) || 1;
-  return item._type === 'series' ? srv.series(id, s, e) : srv.movie(id);
+  return item._type === 'series' ? srv.series(item, s, e) : srv.movie(item);
 }
 
 // Pinga um servidor (no-cors, timeout 5s)
@@ -2647,15 +2861,25 @@ document.getElementById('btn-diag-run').onclick = runDiag;
 // ═══════════════════════════════════════════════════════════
 document.getElementById('btn-cfg').onclick = function() {
   document.getElementById('settings-tmdb').value = tmdbKey;
+  applyLangUI(); // garante que banner e labels estão atualizados
   document.getElementById('tela-settings').classList.add('aberta');
 };
 document.getElementById('settings-cancelar').onclick = function() {
   document.getElementById('tela-settings').classList.remove('aberta');
 };
 document.getElementById('settings-salvar').onclick = function() {
+  var oldKey = tmdbKey;
   tmdbKey = (document.getElementById('settings-tmdb').value || '').trim();
   try { localStorage.setItem('sf_tmdb', tmdbKey); } catch(e){}
   document.getElementById('tela-settings').classList.remove('aberta');
+  // Se a chave mudou, recarrega catálogo com novo idioma
+  if (tmdbKey !== oldKey) {
+    catalog = null;
+    hero = null;
+    var mc = document.getElementById('main-content');
+    if (mc) mc.innerHTML = '<div class="loading-screen"><div class="spin"></div><p id="loading-msg">' + t('loadingCatalog') + '</p><small id="loading-sources">' + (tmdbKey ? 'TMDB (' + tmdbLang() + ') · Jikan · VidSrc · IPTV-Org' : 'Cinemeta · Jikan · VidSrc · IPTV-Org') + '</small></div>';
+    carregarCatalogo();
+  }
 };
 document.getElementById('tela-settings').addEventListener('click', function(e) {
   if (e.target === this) this.classList.remove('aberta');
