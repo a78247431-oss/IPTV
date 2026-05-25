@@ -454,13 +454,13 @@ var SERVERS = [
   },
   {
     name: 'SuperEmbed', icon: '🚀', color: '#06b6d4', rec: false,
-    movie:  function(item)      { var lang = (typeof currentLang !== 'undefined' ? currentLang : 'pt'); if(item.tmdbId) return 'https://multiembed.mov/?video_id=' + item.tmdbId + '&tmdb=1&lang=' + lang; return 'https://multiembed.mov/?video_id=' + item.imdbId + '&tmdb=0&lang=' + lang; },
-    series: function(item, s, e){ var lang = (typeof currentLang !== 'undefined' ? currentLang : 'pt'); if(item.tmdbId) return 'https://multiembed.mov/?video_id=' + item.tmdbId + '&tmdb=1&s=' + s + '&e=' + e + '&lang=' + lang; return 'https://multiembed.mov/?video_id=' + item.imdbId + '&tmdb=0&s=' + s + '&e=' + e + '&lang=' + lang; }
+    movie:  function(item)      { if(item.tmdbId) return 'https://multiembed.mov/?video_id=' + item.tmdbId + '&tmdb=1'; return 'https://multiembed.mov/?video_id=' + item.imdbId + '&tmdb=0'; },
+    series: function(item, s, e){ if(item.tmdbId) return 'https://multiembed.mov/?video_id=' + item.tmdbId + '&tmdb=1&s=' + s + '&e=' + e; return 'https://multiembed.mov/?video_id=' + item.imdbId + '&tmdb=0&s=' + s + '&e=' + e; }
   },
   {
     name: 'VidSrc Pro', icon: '⚡', color: '#ffd700', rec: false,
-    movie:  function(item)      { var id = item.tmdbId || item.imdbId; var lang = (typeof tmdbLang === 'function' ? tmdbLang() : 'pt-BR'); return 'https://vidsrc.pro/embed/movie/' + id + '?lang=' + lang; },
-    series: function(item, s, e){ var id = item.tmdbId || item.imdbId; var lang = (typeof tmdbLang === 'function' ? tmdbLang() : 'pt-BR'); return 'https://vidsrc.pro/embed/tv/' + id + '/' + s + '/' + e + '?lang=' + lang; }
+    movie:  function(item)      { var id = item.tmdbId || item.imdbId; return 'https://vidsrc.pro/embed/movie/' + id; },
+    series: function(item, s, e){ var id = item.tmdbId || item.imdbId; return 'https://vidsrc.pro/embed/tv/' + id + '/' + s + '/' + e; }
   }
 ];
 
@@ -1258,7 +1258,7 @@ async function carregarCatalogo() {
   function nj(arr){ return (arr && arr.data ? arr.data : []).map(normalizeJikan); }
   function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
 
-  // ── Anime via Jikan — requisições em série p/ evitar 429 (rate limit) ──
+  // ── Anime via Jikan — em série p/ evitar 429 (rate limit) ──
   var anime, airing, animeAiring, animeMovies, animeAction, animeSlice;
   try {
     var r0 = await jikanFetch('/top/anime?limit=25&page=1'); anime       = nj(r0); await sleep(350);
@@ -1268,8 +1268,12 @@ async function carregarCatalogo() {
     var r4 = await jikanFetch('/top/anime?limit=20&genres=1');      animeAction = nj(r4); await sleep(350);
     var r5 = await jikanFetch('/top/anime?limit=20&genres=36');     animeSlice  = nj(r5);
   } catch(e) {
-    anime = anime || []; airing = airing || []; animeAiring = animeAiring || [];
-    animeMovies = animeMovies || []; animeAction = animeAction || []; animeSlice = animeSlice || [];
+    anime       = anime       || [];
+    airing      = airing      || [];
+    animeAiring = animeAiring || [];
+    animeMovies = animeMovies || [];
+    animeAction = animeAction || [];
+    animeSlice  = animeSlice  || [];
   }
 
   var movies, series, trending, action, horror, scifi, crime, docs,
@@ -1629,7 +1633,7 @@ function setupInfinite(tab, genre) {
   var genres = tab === 'movies' ? getMovieGenres() : tab === 'series' ? getSeriesGenres() : tab === 'anime' ? getAnimeGenres() : getDocGenres();
   var titulo = tab === 'movies' ? t('movies') : tab === 'series' ? t('series') : tab === 'anime' ? t('anime') : t('documentaries');
 
-  var tabsHtml = '<div class="cat-tabs-wrap"><div style="font-family:\'Bebas Neue\',sans-serif;font-size:22px;letter-spacing:1px;padding:0 0 8px;display:flex;align-items:center;gap:8px"><span style="width:7px;height:7px;border-radius:50%;background:var(--accent);display:inline-block"></span>' + titulo + '</div><div class="cat-tabs">';
+  var tabsHtml = '<div class="cat-tabs-wrap"><div class="cat-tabs">';
   genres.forEach(function(g) {
     tabsHtml += '<button class="cat-tab' + (genre === g.id ? ' ativo' : '') + '" onclick="switchInfGenre(\'' + tab + '\',\'' + g.id + '\')">' + g.label + '</button>';
   });
@@ -1899,23 +1903,7 @@ async function carregarDetalhes(id, type) {
     var malId = String(id).replace('jikan_', '');
     var d = await jikanFetch('/anime/' + malId);
     if (!d || !d.data) return null;
-    var item = normalizeJikan(d.data);
-
-    // Tenta encontrar TMDB/IMDB ID para usar os mesmos servidores dos filmes/séries
-    if (tmdbKey) {
-      try {
-        var searchTitle = encodeURIComponent(d.data.title_english || d.data.title || '');
-        var ts = await tmdbFetch('/search/tv', '&query=' + searchTitle);
-        if (ts && ts.results && ts.results.length) {
-          var best = ts.results[0];
-          item.tmdbId = String(best.id);
-          var ext = await tmdbFetch('/tv/' + best.id + '/external_ids');
-          if (ext && ext.imdb_id) item.imdbId = ext.imdb_id;
-        }
-      } catch(e) { /* sem match TMDB — usará fallback MAL */ }
-    }
-
-    return item;
+    return normalizeJikan(d.data);
   }
 
   // Se temos TMDB ID (item vindo do TMDB), busca detalhes localizados
@@ -2017,18 +2005,13 @@ var _sandboxHandler = null;
 
 function getSrvUrl(idx, item) {
   var srv = SERVERS[idx];
+  var id  = item.imdbId;
   var s   = temporada, e = episodio;
-  var inS  = document.getElementById('inSeason');
-  var inE  = document.getElementById('inEpisode');
-  var inAE = document.getElementById('inAnimeEp');
+  var inS = document.getElementById('inSeason');
+  var inE = document.getElementById('inEpisode');
   if (inS) s = parseInt(inS.value) || 1;
   if (inE) e = parseInt(inE.value) || 1;
-  // Anime usa sempre season=1 + episodio do selector anime
-  if (item._type === 'anime') {
-    s = 1;
-    e = inAE ? (parseInt(inAE.value) || 1) : animeEpisodio;
-  }
-  return (item._type === 'series' || item._type === 'anime') ? srv.series(item, s, e) : srv.movie(item);
+  return item._type === 'series' ? srv.series(item, s, e) : srv.movie(item);
 }
 
 // Pinga um servidor (no-cors, timeout 5s)
@@ -2076,18 +2059,7 @@ function mostrarServidores(item) {
   var grid = document.getElementById('server-grid');
   var area = document.getElementById('embed-area');
 
-  // Anime com TMDB/IMDB ID → usa os mesmos servidores dos filmes/séries ✅
-  if (item._type === 'anime' && (item.imdbId || item.tmdbId)) {
-    _srvStatus = {};
-    SERVERS.forEach(function(_, i) { _srvStatus[i] = 'pending'; });
-    serverAtivo = -1;
-    renderSrvBtns(item);
-    setEmbedLoading('🔍 ' + t('testServers'));
-    autoPlay(item);
-    return;
-  }
-
-  // Anime SÓ com MAL ID (sem TMDB) → fallback ANIME_SERVERS
+  // Anime com MAL ID → usa ANIME_SERVERS com player embed
   if (item._type === 'anime' && item.malId) {
     _srvStatus = {};
     ANIME_SERVERS.forEach(function(_, i) { _srvStatus['a' + i] = 'pending'; });
@@ -2128,7 +2100,7 @@ function mostrarServidores(item) {
 }
 
 async function autoPlay(item) {
-  if (!item || (!item.imdbId && !item.tmdbId)) return;
+  if (!item || !item.imdbId) return;
   _autoPlaying = true;
 
   // Lê servidor em cache
@@ -2191,7 +2163,7 @@ function playNextAuto(item) {
 function playServer(idx, isAuto) {
   var srv  = SERVERS[idx];
   var item = itemSelecionado;
-  if (!item || (!item.imdbId && !item.tmdbId)) return;
+  if (!item || !item.imdbId) return;
 
   var url = getSrvUrl(idx, item);
 
@@ -2205,14 +2177,9 @@ function playServer(idx, isAuto) {
   try { localStorage.setItem('sf_last_srv', idx); } catch(e) {}
 
   // Monta player com label do servidor
-  var langNote = '';
-  if (typeof currentLang !== 'undefined' && currentLang !== 'en') {
-    langNote = '<span style="font-size:10px;color:var(--text2);margin-left:8px;background:rgba(255,255,255,.07);padding:2px 8px;border-radius:4px" title="O idioma do vídeo depende do servidor. Use VidSrc Pro ou SuperEmbed para tentar dobragem.">🌐 idioma depende do servidor</span>';
-  }
   document.getElementById('embed-area').innerHTML =
     '<div class="auto-playing-label">▶ ' + t('playingVia') + ' <strong>' + esc(srv.name) + '</strong>' +
       (isAuto ? ' <span class="auto-tag">' + t('auto') + '</span>' : '') +
-      langNote +
     '</div>' +
     '<div class="embed-player-wrap" id="embed-wrap">' +
       '<iframe id="embed-iframe" src="' + url + '" allow="autoplay; encrypted-media; fullscreen; picture-in-picture; web-share; clipboard-write; xr-spatial-tracking; payment; microphone; camera; gyroscope; accelerometer" referrerpolicy="no-referrer-when-downgrade"></iframe>' +
@@ -2292,19 +2259,10 @@ function buscarEpisodio() {
 function buscarAnimeEpisodio() {
   var inE = document.getElementById('inAnimeEp');
   if (inE) animeEpisodio = parseInt(inE.value) || 1;
-  var item = itemSelecionado;
-  if (!item) return;
-  // Anime com TMDB/IMDB → mesmos servidores dos filmes
-  if (item.imdbId || item.tmdbId) {
-    if (serverAtivo >= 0 && typeof serverAtivo === 'number') playServer(serverAtivo);
-    else autoPlay(item);
-    return;
-  }
-  // Fallback MAL
   if (serverAtivo >= 0 && typeof serverAtivo === 'string' && serverAtivo.startsWith('a')) {
     playAnimeServer(parseInt(serverAtivo.slice(1)));
   } else {
-    autoPlayAnime(item);
+    autoPlayAnime(itemSelecionado);
   }
 }
 
@@ -2683,9 +2641,9 @@ var DIAG_TESTS = [
   { section: null, id:'twoembed',   name:'2Embed',      url:'https://www.2embed.cc/embed/' + DIAG_IMDB,                         type:'embed' },
   { section: null, id:'superembed', name:'SuperEmbed',  url:'https://multiembed.mov/?video_id=' + DIAG_IMDB + '&tmdb=0',        type:'embed' },
   // ── Servidores Anime ──
-  { section: '⛩ Servidores Anime', id:'vidsrc-pro-a', name:'VidSrc Pro ✦ Anime',  url:'https://vidsrc.pro/embed/anime?mal=1535&ep=1',      type:'embed' },
-  { section: null, id:'toanime-a',    name:'2Anime',          url:'https://2anime.xyz/embed/1535/1',                      type:'embed' },
-  { section: null, id:'vidsrc-cc-a',  name:'VidSrc.cc Anime', url:'https://vidsrc.cc/embed/anime?malId=1535&ep=1',        type:'embed' },
+  { section: '⛩ Servidores Anime', id:'vidsrc-pro-a', name:'VidSrc Pro ✦ Anime', url:'https://vidsrc.pro/embed/anime?mal=1535&ep=1',    type:'embed' },
+  { section: null, id:'toanime-a',   name:'2Anime',          url:'https://2anime.xyz/embed/1535/1',                    type:'embed' },
+  { section: null, id:'vidsrc-cc-a', name:'VidSrc.cc Anime', url:'https://vidsrc.cc/embed/anime?malId=1535&ep=1',      type:'embed' },
   // ── IPTV ──
   { section: '📡 Fontes IPTV', id:'iptv-br', name:'IPTV-Org Brasil', url:'https://iptv-org.github.io/iptv/countries/br.m3u', type:'iptv' },
   { section: null,             id:'iptv-pt', name:'IPTV-Org Portugal',url:'https://iptv-org.github.io/iptv/countries/pt.m3u',type:'iptv' },
