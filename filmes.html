@@ -445,22 +445,26 @@ var SERVERS = [
   {
     name: 'VidSrc',   icon: '🎬', color: '#e50914', rec: true,
     movie:  function(item)      { var id = item.tmdbId || item.imdbId; return 'https://vidsrc.to/embed/movie/' + id; },
-    series: function(item, s, e){ var id = item.tmdbId || item.imdbId; return 'https://vidsrc.to/embed/tv/' + id + '/' + s + '/' + e; }
+    series: function(item, s, e){ var id = item.tmdbId || item.imdbId; return 'https://vidsrc.to/embed/tv/' + id + '/' + s + '/' + e; },
+    anime:  function(item, e)   { if (item.malId) return 'https://vidsrc.to/embed/anime/' + item.malId + '/' + e; var id = item.tmdbId || item.imdbId; return 'https://vidsrc.to/embed/tv/' + id + '/1/' + e; }
   },
   {
     name: '2Embed',   icon: '📺', color: '#0891b2', rec: false,
     movie:  function(item)      { var id = item.imdbId || item.tmdbId; return 'https://www.2embed.cc/embed/' + id; },
-    series: function(item, s, e){ var id = item.imdbId || item.tmdbId; return 'https://www.2embed.cc/embedtv/' + id + '&s=' + s + '&e=' + e; }
+    series: function(item, s, e){ var id = item.imdbId || item.tmdbId; return 'https://www.2embed.cc/embedtv/' + id + '&s=' + s + '&e=' + e; },
+    anime:  function(item, e)   { var id = item.imdbId || item.tmdbId; return 'https://www.2embed.cc/embedtv/' + id + '&s=1&e=' + e; }
   },
   {
     name: 'SuperEmbed', icon: '🚀', color: '#06b6d4', rec: false,
     movie:  function(item)      { if(item.tmdbId) return 'https://multiembed.mov/?video_id=' + item.tmdbId + '&tmdb=1'; return 'https://multiembed.mov/?video_id=' + item.imdbId + '&tmdb=0'; },
-    series: function(item, s, e){ if(item.tmdbId) return 'https://multiembed.mov/?video_id=' + item.tmdbId + '&tmdb=1&s=' + s + '&e=' + e; return 'https://multiembed.mov/?video_id=' + item.imdbId + '&tmdb=0&s=' + s + '&e=' + e; }
+    series: function(item, s, e){ if(item.tmdbId) return 'https://multiembed.mov/?video_id=' + item.tmdbId + '&tmdb=1&s=' + s + '&e=' + e; return 'https://multiembed.mov/?video_id=' + item.imdbId + '&tmdb=0&s=' + s + '&e=' + e; },
+    anime:  function(item, e)   { if(item.tmdbId) return 'https://multiembed.mov/?video_id=' + item.tmdbId + '&tmdb=1&s=1&e=' + e; return 'https://multiembed.mov/?video_id=' + item.imdbId + '&tmdb=0&s=1&e=' + e; }
   },
   {
     name: 'VidSrc Pro', icon: '⚡', color: '#ffd700', rec: false,
     movie:  function(item)      { var id = item.tmdbId || item.imdbId; return 'https://vidsrc.pro/embed/movie/' + id; },
-    series: function(item, s, e){ var id = item.tmdbId || item.imdbId; return 'https://vidsrc.pro/embed/tv/' + id + '/' + s + '/' + e; }
+    series: function(item, s, e){ var id = item.tmdbId || item.imdbId; return 'https://vidsrc.pro/embed/tv/' + id + '/' + s + '/' + e; },
+    anime:  function(item, e)   { if (item.malId) return 'https://vidsrc.pro/embed/anime?mal=' + item.malId + '&ep=' + e; var id = item.tmdbId || item.imdbId; return 'https://vidsrc.pro/embed/tv/' + id + '/1/' + e; }
   }
 ];
 
@@ -1983,8 +1987,9 @@ function getSrvUrl(idx, item) {
   var inE = document.getElementById('inEpisode');
   if (inS) s = parseInt(inS.value) || 1;
   if (inE) e = parseInt(inE.value) || 1;
-  // Anime e series usam a mesma URL de episodio
-  return (item._type === 'series' || item._type === 'anime') ? srv.series(item, s, e) : srv.movie(item);
+  // Anime usa rota dedicada com MAL ID para garantir audio correto
+  if (item._type === 'anime') return srv.anime ? srv.anime(item, e) : srv.series(item, 1, e);
+  return item._type === 'series' ? srv.series(item, s, e) : srv.movie(item);
 }
 
 // Pinga um servidor (no-cors, timeout 5s)
