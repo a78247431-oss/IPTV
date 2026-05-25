@@ -2266,34 +2266,19 @@ function renderAnimeSrvBtns(item) {
   }).join('');
 }
 
-async function autoPlayAnime(item) {
+function autoPlayAnime(item) {
   if (!item || !item.malId) return;
 
   var cached = -1;
   try { cached = parseInt(localStorage.getItem('sf_last_anime_srv') || '-1'); } catch(e) {}
 
-  var pingResults = await Promise.all(ANIME_SERVERS.map(async function(srv, idx) {
-    var url = getAnimeSrvUrl(idx, item.malId);
-    var ok  = await pingSrv(url);
-    _srvStatus['a' + idx] = ok ? 'ok' : 'fail';
-    renderAnimeSrvBtns(item);
-    return { idx: idx, ok: ok };
-  }));
+  // Servidores de anime bloqueiam requisicoes no-cors, entao o ping sempre falha.
+  // Igual aos filmes quando clicados manualmente: vai direto pro player sem pingar.
+  ANIME_SERVERS.forEach(function(_, i) { _srvStatus['a' + i] = 'ok'; });
+  renderAnimeSrvBtns(item);
 
-  var online = pingResults.filter(function(r) { return r.ok; }).map(function(r) { return r.idx; });
-
-  if (!online.length) {
-    var area = document.getElementById('embed-area');
-    if (area) area.innerHTML =
-      '<div class="embed-fallback" style="display:flex">' +
-        '<span style="font-size:28px">📡</span>' +
-        '<p>' + t('noAnimeServer') + '</p>' +
-        '<small>' + t('tryOtherEp') + '</small>' +
-      '</div>';
-    return;
-  }
-
-  var ordered = online.slice().sort(function(a, b) {
+  var all = ANIME_SERVERS.map(function(_, i) { return i; });
+  var ordered = all.slice().sort(function(a, b) {
     if (a === cached)                return -1;
     if (b === cached)                return 1;
     if (ANIME_SERVERS[a].rec)        return -1;
