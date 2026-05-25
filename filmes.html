@@ -1899,7 +1899,23 @@ async function carregarDetalhes(id, type) {
     var malId = String(id).replace('jikan_', '');
     var d = await jikanFetch('/anime/' + malId);
     if (!d || !d.data) return null;
-    return normalizeJikan(d.data);
+    var item = normalizeJikan(d.data);
+
+    // Tenta encontrar TMDB/IMDB ID para usar os mesmos servidores dos filmes/séries
+    if (tmdbKey) {
+      try {
+        var searchTitle = encodeURIComponent(d.data.title_english || d.data.title || '');
+        var ts = await tmdbFetch('/search/tv', '&query=' + searchTitle);
+        if (ts && ts.results && ts.results.length) {
+          var best = ts.results[0];
+          item.tmdbId = String(best.id);
+          var ext = await tmdbFetch('/tv/' + best.id + '/external_ids');
+          if (ext && ext.imdb_id) item.imdbId = ext.imdb_id;
+        }
+      } catch(e) { /* sem match TMDB — usará fallback MAL */ }
+    }
+
+    return item;
   }
 
   // Se temos TMDB ID (item vindo do TMDB), busca detalhes localizados
@@ -2001,13 +2017,18 @@ var _sandboxHandler = null;
 
 function getSrvUrl(idx, item) {
   var srv = SERVERS[idx];
-  var id  = item.imdbId;
   var s   = temporada, e = episodio;
-  var inS = document.getElementById('inSeason');
-  var inE = document.getElementById('inEpisode');
+  var inS  = document.getElementById('inSeason');
+  var inE  = document.getElementById('inEpisode');
+  var inAE = document.getElementById('inAnimeEp');
   if (inS) s = parseInt(inS.value) || 1;
   if (inE) e = parseInt(inE.value) || 1;
-  return item._type === 'series' ? srv.series(item, s, e) : srv.movie(item);
+  // Anime usa sempre season=1 + episodio do selector anime
+  if (item._type === 'anime') {
+    s = 1;
+    e = inAE ? (parseInt(inAE.value) || 1) : animeEpisodio;
+  }
+  return (item._type === 'series' || item._type === 'anime') ? srv.series(item, s, e) : srv.movie(item);
 }
 
 // Pinga um servidor (no-cors, timeout 5s)
@@ -2055,7 +2076,18 @@ function mostrarServidores(item) {
   var grid = document.getElementById('server-grid');
   var area = document.getElementById('embed-area');
 
-  // Anime com MAL ID → usa ANIME_SERVERS com player embed
+  // Anime com TMDB/IMDB ID → usa os mesmos servidores dos filmes/séries ✅
+  if (item._type === 'anime' && (item.imdbId || item.tmdbId)) {
+    _srvStatus = {};
+    SERVERS.forEach(function(_, i) { _srvStatus[i] = 'pending'; });
+    serverAtivo = -1;
+    renderSrvBtns(item);
+    setEmbedLoading('🔍 ' + t('testServers'));
+    autoPlay(item);
+    return;
+  }
+
+  // Anime SÓ com MAL ID (sem TMDB) → fallback ANIME_SERVERS
   if (item._type === 'anime' && item.malId) {
     _srvStatus = {};
     ANIME_SERVERS.forEach(function(_, i) { _srvStatus['a' + i] = 'pending'; });
@@ -2096,7 +2128,7 @@ function mostrarServidores(item) {
 }
 
 async function autoPlay(item) {
-  if (!item || !item.imdbId) return;
+  if (!item || (!item.imdbId && !item.tmdbId)) return;
   _autoPlaying = true;
 
   // Lê servidor em cache
@@ -2159,7 +2191,7 @@ function playNextAuto(item) {
 function playServer(idx, isAuto) {
   var srv  = SERVERS[idx];
   var item = itemSelecionado;
-  if (!item || !item.imdbId) return;
+  if (!item || (!item.imdbId && !item.tmdbId)) return;
 
   var url = getSrvUrl(idx, item);
 
@@ -2260,10 +2292,19 @@ function buscarEpisodio() {
 function buscarAnimeEpisodio() {
   var inE = document.getElementById('inAnimeEp');
   if (inE) animeEpisodio = parseInt(inE.value) || 1;
+  var item = itemSelecionado;
+  if (!item) return;
+  // Anime com TMDB/IMDB → mesmos servidores dos filmes
+  if (item.imdbId || item.tmdbId) {
+    if (serverAtivo >= 0 && typeof serverAtivo === 'number') playServer(serverAtivo);
+    else autoPlay(item);
+    return;
+  }
+  // Fallback MAL
   if (serverAtivo >= 0 && typeof serverAtivo === 'string' && serverAtivo.startsWith('a')) {
     playAnimeServer(parseInt(serverAtivo.slice(1)));
   } else {
-    autoPlayAnime(itemSelecionado);
+    autoPlayAnime(item);
   }
 }
 
